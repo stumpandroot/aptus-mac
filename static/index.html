@@ -1,0 +1,1396 @@
+<title>Aptus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@400;500;600;700;800&display=swap">
+<style>
+/* Caveat ships with the app so the handwriting works offline; the Google Fonts link covers the browser preview. */
+@font-face{font-family:'Caveat';font-weight:600;font-display:swap;src:url('/static/fonts/caveat-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'Caveat';font-weight:700;font-display:swap;src:url('/static/fonts/caveat-latin-700-normal.woff2') format('woff2')}
+/* Aptus: the Verbatim family's tint-and-ink language, with Apti's teal in the accent slot.
+   Layout: sidebar + work column + destinations inspector on the Mac; one column with a floating glass tab bar on a phone.
+   Bold lives in one place per screen: the headline. Everything else sits at regular or medium. */
+:root{
+  --ink:#1E2340;--canvas:#FAF8F2;--card:#ffffff;
+  --teal:#3FB8A4;--teal-tint:#DDF4EF;--teal-ink:#1C7364;
+  --coral:#FF8A6B;--coral-tint:#FFE4DA;--coral-ink:#A8401F;
+  --lime:#B7E67E;--lime-tint:#E8F5CF;--lime-ink:#47701A;
+  --iris:#6C5CE7;--iris-tint:#E6E2FF;--iris-ink:#4B3FC4;
+  --mist-tint:#F1F0F5;--mist-ink:#5F5F74;--line:#ECEAF1;
+  --glass:rgba(255,255,255,.7);--scrim:rgba(30,35,64,.86);--btn-ink:#ffffff;
+  --font:'Avenir Next','Nunito',ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --hand:'Caveat','Bradley Hand','Segoe Print',cursive;
+  --r-card:28px;--r-tile:20px;
+  --spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.2,.8,.2,1);
+  --nav-h:64px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#ECEBF5;--canvas:#15172A;--card:#1E2140;--teal:#5FD3BF;--teal-tint:#173A37;--teal-ink:#8EE6D6;
+  --coral:#FF9C80;--coral-tint:#3A2230;--coral-ink:#FFB09B;--lime:#C4EC93;--lime-tint:#24331F;--lime-ink:#C4EC93;
+  --iris:#9B8CFF;--iris-tint:#2A2856;--iris-ink:#C7BEFF;--mist-tint:#262948;--mist-ink:#A9A8C0;--line:#2C2F4F;
+  --glass:rgba(30,33,64,.72);--scrim:rgba(8,10,24,.88);--btn-ink:#15172A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#ECEBF5;--canvas:#15172A;--card:#1E2140;--teal:#5FD3BF;--teal-tint:#173A37;--teal-ink:#8EE6D6;
+  --coral:#FF9C80;--coral-tint:#3A2230;--coral-ink:#FFB09B;--lime:#C4EC93;--lime-tint:#24331F;--lime-ink:#C4EC93;
+  --iris:#9B8CFF;--iris-tint:#2A2856;--iris-ink:#C7BEFF;--mist-tint:#262948;--mist-ink:#A9A8C0;--line:#2C2F4F;
+  --glass:rgba(30,33,64,.72);--scrim:rgba(8,10,24,.88);--btn-ink:#15172A;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--font);font-weight:400;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--iris);outline-offset:3px}
+button:disabled{opacity:.5;cursor:default}
+h1,h2,h3,p{margin:0}
+.sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+svg.i{width:22px;height:22px;flex:none;fill:currentColor}
+
+/* ---- type ---- */
+h1{font-size:clamp(28px,4.2vw,36px);line-height:1.06;letter-spacing:-.035em;font-weight:700;text-wrap:balance}
+h2{font-size:19px;line-height:1.2;letter-spacing:-.02em;font-weight:600}
+.accent{color:var(--teal-ink)}
+.hand{font-family:var(--hand);font-weight:600;font-size:23px;line-height:1;color:var(--coral-ink);display:block}
+.sub{color:var(--mist-ink);font-size:15.5px;max-width:46ch}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mist-ink)}
+.meta{font-size:13px;color:var(--mist-ink);font-variant-numeric:tabular-nums}
+
+/* ---- buttons (the pill holds still; its inner content squashes and springs) ---- */
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:999px;font-size:15.5px;font-weight:600;transition:background .2s,box-shadow .2s}
+.btn .inner,.pressable .inner{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:100%;height:100%;transform-origin:center}
+.btn-dark{background:var(--ink);color:var(--btn-ink)}
+.btn-outline{background:transparent;color:var(--teal-ink);box-shadow:inset 0 0 0 1.5px var(--teal);font-weight:500}
+.btn-outline:hover{background:var(--teal-tint)}
+.btn-soft{background:var(--mist-tint);color:var(--ink);font-weight:500}
+.btn-sm{min-height:44px;padding:0 16px;font-size:14.5px}
+.hand-btn{font-family:var(--hand);font-weight:600;font-size:24px;color:var(--teal-ink);min-height:44px;padding:0 6px;border-radius:12px}
+.is-pressed>.inner{transform:scale(.9);transition:transform .08s ease-out}
+.vb-release>.inner{animation:release .6s var(--spring) both}
+@keyframes release{0%{transform:scale(.9)}45%{transform:scale(1.06)}75%{transform:scale(.985)}100%{transform:scale(1)}}
+
+/* ---- shell ---- */
+.app{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh}
+.sidebar{padding:28px 18px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:8px;padding:0 8px}
+.word{display:inline-flex;font-size:25px;font-weight:800;letter-spacing:-.05em;line-height:1.1}
+.word span{display:inline-block;transform-origin:center bottom;animation:letter .68s cubic-bezier(.18,.87,.2,1) both;animation-delay:calc(80ms + var(--n)*76ms)}
+@keyframes letter{0%{opacity:0;transform:translateY(18px) rotate(-10deg) scale(.68)}48%{opacity:1;transform:translateY(-8px) rotate(3deg) scale(1.09,.91)}69%{transform:translateY(3px) scale(.97,1.03)}83%{transform:translateY(-2px) scale(1.015)}100%{opacity:1;transform:none}}
+.mark{position:relative;width:26px;height:26px;flex:none}
+.mark i{position:absolute;width:10px;height:10px;border:3.5px solid;animation:snap .7s var(--spring) both;animation-delay:.7s}
+.mark .tl{top:0;left:0;border-color:var(--coral);border-right:0;border-bottom:0;border-radius:4px 0 0 0;--dx:-6px;--dy:-6px}
+.mark .tr{top:0;right:0;border-color:var(--lime);border-left:0;border-bottom:0;border-radius:0 4px 0 0;--dx:6px;--dy:-6px}
+.mark .bl{bottom:0;left:0;border-color:var(--lime);border-right:0;border-top:0;border-radius:0 0 0 4px;--dx:-6px;--dy:6px}
+.mark .br{bottom:0;right:0;border-color:var(--coral);border-left:0;border-top:0;border-radius:0 0 4px 0;--dx:6px;--dy:6px}
+.mark b{position:absolute;inset:6px;border-radius:4px;background:var(--teal);animation:pop .5s var(--spring) both .55s}
+@keyframes snap{0%{opacity:0;transform:translate(var(--dx),var(--dy))}100%{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.nav{display:grid;gap:6px}
+.nav-link{display:flex;align-items:center;min-height:46px;padding:0 14px;border-radius:999px;color:var(--mist-ink);font-size:15px;font-weight:500;overflow:hidden}
+.nav-link .inner{justify-content:flex-start;gap:12px}
+.nav-link:hover{background:var(--mist-tint)}
+.nav-link.selected{background:var(--teal-tint);color:var(--teal-ink);font-weight:600}
+.rail-note{margin-top:auto;font-size:13px;color:var(--mist-ink)}
+.mode{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--mist-tint);color:var(--mist-ink)}
+.main{min-width:0}
+.topbar{display:none}
+
+/* ---- pages ---- */
+.page{display:none;padding:30px 34px 48px}
+.page.active{display:block}
+.home{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:26px;align-items:start;max-width:1320px}
+.work{min-width:0;display:grid;gap:18px}
+.hero{display:grid;gap:10px}
+.in{animation:rise .62s var(--spring) both;animation-delay:calc(var(--i,0)*55ms)}
+@keyframes rise{0%{opacity:0;transform:translateY(16px) scale(.98)}60%{opacity:1}100%{opacity:1;transform:none}}
+
+/* ---- stage ---- */
+.stage-card{background:var(--card);border-radius:var(--r-card);padding:14px;display:grid;gap:12px}
+.stage-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 6px 0}
+.file-name{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--coral-tint);color:var(--coral-ink)}
+.stage-head .grow{flex:1}
+.stage{background:var(--mist-tint);border-radius:var(--r-tile);padding:12px;text-align:center}
+.frame{position:relative;display:inline-block;max-width:100%;vertical-align:top}
+.frame{touch-action:none;user-select:none;-webkit-user-select:none}
+.frame img{display:block;max-width:100%;max-height:56vh;border-radius:12px;cursor:crosshair;-webkit-user-drag:none}
+.frame:focus-visible{outline:3px solid var(--iris);outline-offset:4px;border-radius:12px}
+.warn-inline{color:var(--coral-ink)}
+.focal-note b{font-weight:600;color:var(--ink)}
+.frame svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.focal-note{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:0 6px;color:var(--mist-ink);font-size:13.5px}
+.focal-note .hand{font-size:21px;color:var(--teal-ink)}
+
+.empty{display:grid;justify-items:center;gap:12px;padding:44px 20px 40px;text-align:center}
+.empty .apti{width:128px;height:128px}
+.empty strong{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.empty p{color:var(--mist-ink);font-size:14.5px;max-width:36ch}
+.empty .row{justify-content:center}
+
+/* ---- video tools ---- */
+.video{display:grid;gap:12px;padding:4px 6px 4px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.scrub{flex:1;min-width:160px;accent-color:var(--teal);height:28px}
+.time{font-size:13px;font-weight:600;min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--teal-ink)}
+.chip{position:relative;overflow:hidden;min-height:40px;padding:0 14px;border-radius:999px;font-size:13.5px;font-weight:500;background:var(--mist-tint);color:var(--mist-ink)}
+.chip.best{background:var(--lime-tint);color:var(--lime-ink);font-weight:600}
+.chip.tool{background:var(--teal-tint);color:var(--teal-ink)}
+.inline-num{width:56px;min-height:40px;border:0;border-radius:999px;background:var(--mist-tint);text-align:center;font-weight:600}
+
+/* ---- inspector ---- */
+.inspector{position:sticky;top:24px;background:var(--card);border-radius:var(--r-card);padding:18px 14px 16px;display:grid;gap:6px}
+.inspector .kicker{padding:0 6px;display:flex;justify-content:space-between;align-items:baseline}
+.inspector .kicker button{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--teal-ink);min-height:32px;padding:0 4px}
+.group{display:grid;gap:4px;margin-top:8px}
+.group-head{display:flex;align-items:center;gap:8px;padding:0 6px;font-size:13px;font-weight:600;color:var(--mist-ink)}
+.group-head svg{width:18px;height:18px}
+.dest{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:16px;cursor:pointer;transition:background .2s}
+.dest:hover{background:var(--mist-tint)}
+.dest input{position:absolute;opacity:0;pointer-events:none}
+.box{width:24px;height:24px;border-radius:8px;background:var(--mist-tint);box-shadow:inset 0 0 0 1.5px var(--line);display:grid;place-items:center;color:transparent;transition:background .2s}
+.box svg{width:16px;height:16px}
+.dest.on{background:var(--teal-tint)}
+.dest.on .box{background:var(--teal-ink);box-shadow:none;color:var(--card);animation:tick .45s var(--spring)}
+@keyframes tick{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.dest-name{font-size:14.5px;font-weight:500;line-height:1.3}
+.dest.on .dest-name{color:var(--teal-ink);font-weight:600}
+.dest small{display:block;font-size:12px;color:var(--mist-ink);font-variant-numeric:tabular-nums;margin-top:1px}
+.moved{color:var(--teal-ink);font-weight:600}
+.swatch{width:16px;height:4px;border-radius:2px;background:transparent}
+.dest:focus-within{outline:3px solid var(--iris);outline-offset:1px}
+.export{margin-top:12px;width:100%}
+.export-note{font-size:12.5px;color:var(--mist-ink);text-align:center;padding:4px 6px 0}
+.error{color:var(--coral-ink);font-size:13.5px;padding:0 6px}
+
+/* ---- results ---- */
+.ready{background:var(--lime-tint);border-radius:var(--r-card);padding:14px 20px 14px 14px;display:flex;align-items:center;gap:14px;animation:rise .6s var(--spring) both}
+.ready .apti{width:78px;height:78px;flex:none}
+.ready .hand{color:var(--lime-ink);font-size:22px}
+.ready h2{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-top:2px}
+.ready p{font-size:13.5px;color:var(--lime-ink);margin-top:2px;overflow-wrap:anywhere}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+.result{background:var(--card);border-radius:var(--r-tile);padding:10px;display:grid;gap:8px;align-content:start;min-width:0;animation:rise .55s var(--spring) both;animation-delay:calc(var(--i,0)*60ms)}
+.thumb{border-radius:14px;height:150px;display:grid;place-items:center;overflow:hidden;background:var(--teal-tint)}
+.result:nth-child(3n+2) .thumb{background:var(--coral-tint)}.result:nth-child(3n) .thumb{background:var(--lime-tint)}
+.thumb img{max-width:100%;max-height:150px;display:block}
+.result-body{padding:0 4px 4px;display:grid;gap:4px}
+.result h3{font-size:15px;font-weight:600;line-height:1.3}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;background:var(--mist-tint);color:var(--mist-ink)}
+.pill.ok{background:var(--lime-tint);color:var(--lime-ink)}
+.warn{font-size:12.5px;line-height:1.45;color:var(--coral-ink);background:var(--coral-tint);border-radius:12px;padding:7px 10px}
+.sheet-out{background:var(--card);border-radius:var(--r-tile);padding:12px;display:grid;gap:10px}
+.sheet-out img{width:100%;border-radius:12px;display:block}
+
+/* ---- presets page ---- */
+.presets-page{max-width:900px;display:grid;gap:18px}
+.table-wrap{background:var(--card);border-radius:var(--r-card);overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:12px 16px;border-top:1px solid var(--line);vertical-align:top}
+thead th{border-top:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mist-ink);font-weight:600}
+td{font-variant-numeric:tabular-nums}
+td:first-child{font-weight:600}
+.tint-teal{background:var(--teal-tint);color:var(--teal-ink)}.tint-coral{background:var(--coral-tint);color:var(--coral-ink)}.tint-lime{background:var(--lime-tint);color:var(--lime-ink)}
+
+/* ---- Apti ---- */
+.apti{display:inline-block}
+.apti svg{display:block;width:100%;height:100%;overflow:visible}
+.apti .a-body{transform-origin:60px 96px;animation:breathe 2.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(.985,1.03)}}
+.apti .a-eyes{transform-origin:60px 56px;animation:blink 4.2s ease-in-out infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.apti .a-br{transition:transform .5s var(--spring);transform-box:fill-box;transform-origin:center}
+.apti.cropping .a-tl{transform:translate(10px,10px)}.apti.cropping .a-tr{transform:translate(-10px,10px)}
+.apti.cropping .a-bl{transform:translate(10px,-10px)}.apti.cropping .a-br4{transform:translate(-10px,-10px)}
+.apti.cheer .a-all{transform-origin:60px 110px;animation:hop .9s var(--spring) both}
+.apti.cheer .a-tl{animation:raise-l .9s var(--spring) both}.apti.cheer .a-tr{animation:raise-r .9s var(--spring) both}
+@keyframes hop{0%{transform:translateY(24px) scale(1.15,.82)}40%{transform:translateY(-14px) scale(.92,1.1)}70%{transform:translateY(3px) scale(1.04,.96)}100%{transform:none}}
+@keyframes raise-l{0%{transform:none}50%{transform:translate(-6px,-14px) rotate(-14deg)}100%{transform:translate(-3px,-8px) rotate(-8deg)}}
+@keyframes raise-r{0%{transform:none}50%{transform:translate(6px,-14px) rotate(14deg)}100%{transform:translate(3px,-8px) rotate(8deg)}}
+
+/* ---- drop overlay ---- */
+.drop{position:fixed;inset:0;z-index:40;background:var(--scrim);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.drop-box{border:2px dashed rgba(255,255,255,.5);border-radius:var(--r-card);padding:40px 48px;display:grid;justify-items:center;gap:12px;color:#fff;text-align:center;pointer-events:none;animation:rise .5s var(--spring) both}
+.drop-box .apti{width:96px;height:96px}
+.drop-box strong{font-size:24px;font-weight:600;letter-spacing:-.02em}
+.drop-box span{font-size:14px;opacity:.8}
+
+/* ---- toast ---- */
+.toast{position:fixed;z-index:30;left:50%;bottom:28px;transform:translate(-50%,30px) scale(.8);background:var(--ink);color:var(--btn-ink);padding:12px 18px;border-radius:999px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .6s var(--spring);max-width:calc(100vw - 40px);text-align:center}
+.toast.visible{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* ---- narrow: one column, floating glass tab bar ---- */
+.tabbar{display:none}
+@media (max-width:1080px){.home{grid-template-columns:minmax(0,1fr)}.work{display:contents}.inspector{position:static;order:2}.ready,.results,.sheet-out{order:3}}
+@media (max-width:860px){
+  .app{display:block}
+  .sidebar{display:none}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0}
+  .page{padding:16px 20px calc(var(--nav-h) + 48px)}
+  .tabbar{position:fixed;z-index:20;left:18px;right:18px;bottom:calc(16px + env(safe-area-inset-bottom,0px));height:var(--nav-h);border-radius:999px;background:var(--glass);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 10px 30px rgba(30,35,64,.16),0 0 0 1px var(--line);display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:5px;animation:nav-in .7s var(--spring) .2s backwards}
+  @keyframes nav-in{0%{transform:translateY(60px) scale(.9);opacity:0}60%{transform:translateY(-6px) scale(1.02);opacity:1}100%{transform:none}}
+  .tab{position:relative;overflow:hidden;border-radius:999px;font-size:11.5px;font-weight:500;color:var(--mist-ink)}
+  .tab .inner{flex-direction:column;gap:2px}
+  .tab.selected{background:var(--teal-tint);color:var(--teal-ink);font-weight:600}
+  .toast{bottom:calc(var(--nav-h) + 30px)}
+  .stage-card{padding:10px}
+  .frame img{max-height:48vh}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ---- batch tray ---- */
+.tray-wrap{display:grid;gap:8px;padding:2px 6px 0}
+.tray-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tray-head .grow{flex:1}
+.tray{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:thin}
+.tray-item{position:relative;flex:none;width:68px;height:68px;border-radius:16px;overflow:hidden;background:var(--teal-tint);display:grid;place-items:center;color:var(--teal-ink);transition:box-shadow .2s,transform .4s var(--spring)}
+.tray-item img{width:100%;height:100%;object-fit:cover;display:block}
+.tray-item.current{box-shadow:0 0 0 3px var(--teal);transform:translateY(-2px)}
+.tray-item .n{position:absolute;left:5px;bottom:5px;font-size:11px;font-weight:700;background:var(--card);color:var(--ink);border-radius:999px;padding:0 6px;line-height:18px}
+.tray-item .x{position:absolute;right:4px;top:4px;width:22px;height:22px;border-radius:50%;background:var(--scrim);color:#fff;font-size:15px;line-height:22px;opacity:0;transition:opacity .15s}
+.tray-item:hover .x,.tray-item:focus-within .x{opacity:1}
+.tray-item.done::after{content:"";position:absolute;right:5px;bottom:5px;width:14px;height:14px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 2px var(--card)}
+
+/* ---- inspector sections ---- */
+.section{border-top:1px solid var(--line);margin-top:10px;padding:12px 6px 0;display:grid;gap:10px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.section-head h3{font-size:14px;font-weight:600}
+.field{display:grid;gap:4px;font-size:12.5px;font-weight:600;color:var(--mist-ink)}
+.field input,.field select,.key-input{min-height:42px;border:0;border-radius:12px;background:var(--mist-tint);padding:0 12px;font-size:14px;font-weight:500;color:var(--ink);width:100%}
+.field input::placeholder,.key-input::placeholder{color:var(--mist-ink);opacity:.7}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink);cursor:pointer;min-height:36px}
+.check input{width:18px;height:18px;accent-color:var(--teal-ink)}
+.name-preview{font-size:12.5px;font-family:ui-monospace,'SF Mono',Menlo,monospace;background:var(--teal-tint);color:var(--teal-ink);border-radius:10px;padding:7px 10px;overflow-wrap:anywhere;line-height:1.4}
+.pro{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:1px 7px;background:var(--iris-tint);color:var(--iris-ink);vertical-align:2px}
+.dest.locked{opacity:.55}
+.toggle-btn{font-size:12.5px;font-weight:600;color:var(--teal-ink);min-height:32px;padding:0 4px}
+
+/* ---- Apti while fitting ---- */
+.btn .apti{width:30px;height:30px;margin:-4px 0}
+.apti.working .a-tl{animation:clamp-tl .8s var(--spring) infinite alternate}
+.apti.working .a-tr{animation:clamp-tr .8s var(--spring) infinite alternate}
+.apti.working .a-bl{animation:clamp-bl .8s var(--spring) infinite alternate}
+.apti.working .a-br4{animation:clamp-br .8s var(--spring) infinite alternate}
+@keyframes clamp-tl{to{transform:translate(9px,9px)}}@keyframes clamp-tr{to{transform:translate(-9px,9px)}}
+@keyframes clamp-bl{to{transform:translate(9px,-9px)}}@keyframes clamp-br{to{transform:translate(-9px,-9px)}}
+
+/* ---- results ---- */
+.ready-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.ready .grow{flex:1;min-width:0}
+.mini{position:relative;overflow:hidden;min-height:36px;padding:0 13px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--teal-tint);color:var(--teal-ink)}
+.ready .mini{background:var(--card);color:var(--lime-ink)}
+.alt-box{display:grid;gap:6px;background:var(--card);border-radius:var(--r-tile);padding:12px 14px}
+.alt-box p{font-size:14px}
+.result-actions{display:flex;gap:6px;flex-wrap:wrap}
+.thumb{cursor:zoom-in}
+
+/* ---- 100% check ---- */
+.lightbox{position:fixed;inset:0;z-index:50;background:var(--scrim);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;grid-template-rows:auto minmax(0,1fr);animation:fade .2s ease both}
+.lb-bar{display:flex;align-items:center;gap:10px 14px;padding:14px 18px;color:#fff;flex-wrap:wrap}
+.lb-bar .grow{flex:1}
+.lb-bar .meta{color:rgba(255,255,255,.75)}
+.lb-view{overflow:auto;padding:0 18px 18px;overscroll-behavior:contain}
+.lb-view img{display:block;max-width:none;border-radius:6px;margin:0 auto}
+.seg{display:inline-flex;background:rgba(255,255,255,.14);border-radius:999px;padding:4px;gap:2px}
+.seg button{min-height:36px;padding:0 14px;border-radius:999px;color:#fff;font-size:13.5px;font-weight:600}
+.seg button.on{background:#fff;color:#1E2340}
+.lb-close{min-height:40px;padding:0 16px;border-radius:999px;background:#fff;color:#1E2340;font-weight:600;font-size:14px}
+
+/* ---- settings and my presets ---- */
+.card{background:var(--card);border-radius:var(--r-card);padding:20px 22px;display:grid;gap:12px}
+.card p{color:var(--mist-ink);font-size:14px}
+.card .path{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:var(--ink);background:var(--mist-tint);border-radius:10px;padding:8px 12px;overflow-wrap:anywhere}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end}
+.custom-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--mist-tint)}
+.custom-row .grow{flex:1;min-width:0}
+.custom-row small{display:block;color:var(--mist-ink);font-size:12px}
+.status-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--mist-ink)}
+.dot.on{background:var(--lime-ink)}
+kbd{font-family:inherit;font-size:12.5px;font-weight:600;background:var(--mist-tint);border-radius:7px;padding:2px 7px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;align-items:center}
+/* on wide screens the inspector scrolls inside itself so Export always stays in reach */
+@media (min-width:1081px){
+  .inspector{max-height:calc(100vh - 48px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+  .inspector .export{position:sticky;bottom:0;z-index:2;box-shadow:0 0 0 10px var(--card)}
+}
+@media (max-width:860px){.tabbar{grid-template-columns:repeat(3,1fr)}.fields{grid-template-columns:1fr}}
+</style>
+
+<!-- Apti, drawn once and reused: soft teal body, coral and lime crop brackets. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M12 3.2 2.8 10.6c-.6.5-.2 1.4.6 1.4H5v7.5c0 .8.7 1.5 1.5 1.5H10v-5.5h4V21h3.5c.8 0 1.5-.7 1.5-1.5V12h1.6c.8 0 1.2-.9.6-1.4L12 3.2z"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 3a1.5 1.5 0 0 1 1.5 1.5v6.2a3 3 0 0 1 0 5.6v3.2a1.5 1.5 0 0 1-3 0v-3.2a3 3 0 0 1 0-5.6V4.5A1.5 1.5 0 0 1 5 3zm7 0a1.5 1.5 0 0 1 1.5 1.5v1.2a3 3 0 0 1 0 5.6v8.2a1.5 1.5 0 0 1-3 0v-8.2a3 3 0 0 1 0-5.6V4.5A1.5 1.5 0 0 1 12 3zm7 0a1.5 1.5 0 0 1 1.5 1.5v8.2a3 3 0 0 1 0 5.6v1.2a1.5 1.5 0 0 1-3 0v-1.2a3 3 0 0 1 0-5.6V4.5A1.5 1.5 0 0 1 19 3z"/></symbol>
+    <symbol id="i-web" viewBox="0 0 24 24"><path d="M5 3h14a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm-.5 5h15V6.5a1 1 0 0 0-1-1h-13a1 1 0 0 0-1 1V8zM6 7.4a.9.9 0 1 0 0-.1zm2.6 0a.9.9 0 1 0 0-.1z"/></symbol>
+    <symbol id="i-social" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.4-9.4-9.3C1.3 8.2 3.4 4.5 7 4.5c2 0 3.4 1 5 2.8 1.6-1.8 3-2.8 5-2.8 3.6 0 5.7 3.7 4.4 7.2C19.5 16.6 12 21 12 21z"/></symbol>
+    <symbol id="i-frame" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm1.5 14h11l-3.6-4.8-2.7 3.4-1.8-2.2L6.5 17zM9 10.5a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12a1.3 1.3 0 0 1 1.8-1.8l2.4 2.4 7.4-7.4A1.3 1.3 0 0 1 18.7 7l-9.2 9.2z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3.5c.4 0 .8.2 1.1.4l4.2 4.2a1.5 1.5 0 0 1-2.1 2.1l-1.7-1.7V15a1.5 1.5 0 0 1-3 0V8.5l-1.7 1.7a1.5 1.5 0 0 1-2.1-2.1l4.2-4.2c.3-.3.7-.4 1.1-.4zM4.5 14A1.5 1.5 0 0 1 6 15.5V18h12v-2.5a1.5 1.5 0 0 1 3 0V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3.5A1.5 1.5 0 0 1 4.5 14z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2.5c.5 0 .9.3 1 .8l1.2 4.6c.2.7.7 1.2 1.4 1.4l4.6 1.2a1 1 0 0 1 0 2l-4.6 1.2c-.7.2-1.2.7-1.4 1.4L13 19.7a1 1 0 0 1-2 0l-1.2-4.6c-.2-.7-.7-1.2-1.4-1.4l-4.6-1.2a1 1 0 0 1 0-2l4.6-1.2c.7-.2 1.2-.7 1.4-1.4L11 3.3c.1-.5.5-.8 1-.8z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M5 3h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm10 0h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM5 13h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zm10 0h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 3v2h2V6H5zm0 5v2h2v-2H5zm0 5v2h2v-2H5zM17 6v2h2V6h-2zm0 5v2h2v-2h-2zm0 5v2h2v-2h-2z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M10.6 2.5h2.8l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.4 2.4-2 1.8c.1.6.1 1.2 0 1.8l2 1.7-1.4 2.5-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-2.8l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.4-2.5 2-1.7a6 6 0 0 1 0-1.8l-2-1.8 1.4-2.4 2.5.9c.5-.4 1.1-.7 1.7-.9l.5-2.6zM12 8.6a2.9 2.9 0 1 0 0 5.8 2.9 2.9 0 0 0 0-5.8z" transform="translate(0 1)"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 4h5.2c.6 0 1.1.3 1.4.7L11.8 6H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 6 12l4 4a1.4 1.4 0 0 1-2 2l-4-4a7.5 7.5 0 1 1-4-14zm0 3a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4.5c.8 0 1.5.7 1.5 1.5v4.5H18a1.5 1.5 0 0 1 0 3h-4.5V18a1.5 1.5 0 0 1-3 0v-4.5H6a1.5 1.5 0 0 1 0-3h4.5V6c0-.8.7-1.5 1.5-1.5z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="sidebar" aria-label="Main navigation">
+    <div class="brand" aria-label="Aptus" role="img">
+      <span class="mark" aria-hidden="true"><b></b><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></span>
+      <span class="word" aria-hidden="true"><span style="--n:0">A</span><span style="--n:1">p</span><span style="--n:2">t</span><span style="--n:3">u</span><span style="--n:4">s</span></span>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <button class="nav-link pressable selected" data-view="home" id="nav-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
+      <button class="nav-link pressable" data-view="presets" id="nav-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
+      <button class="nav-link pressable" data-view="settings" id="nav-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
+    </nav>
+    <div class="rail-note"><span id="railNote">Originals stay untouched. Every export is a new file.</span><br><span class="mode" id="modeTag">Checking…</span></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="brand" aria-label="Aptus" role="img">
+        <span class="mark" aria-hidden="true"><b></b><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></span>
+        <span class="word" aria-hidden="true"><span style="--n:0">A</span><span style="--n:1">p</span><span style="--n:2">t</span><span style="--n:3">u</span><span style="--n:4">s</span></span>
+      </div>
+      <span class="mode" id="modeTag2"></span>
+    </header>
+
+    <section class="page active" id="page-home" aria-labelledby="heroTitle">
+      <div class="home">
+        <div class="work">
+          <div class="hero">
+            <span class="hand in" style="--i:0" aria-hidden="true">drop photos, a folder, or a video</span>
+            <h1 class="in" style="--i:1" id="heroTitle">Fit it to <span class="accent">wherever it's going.</span></h1>
+            <p class="sub in" style="--i:2">Pick destinations, drag each crop where you want it, and Aptus sizes, names and compresses a file for each one.</p>
+          </div>
+
+          <div class="stage-card in" style="--i:3">
+            <div class="empty" id="empty">
+              <span class="apti" aria-hidden="true"></span>
+              <strong>Nothing to fit yet</strong>
+              <p>Drop photos, a folder or a video anywhere on this window, or choose files.</p>
+              <div class="row">
+                <label class="btn btn-dark pressable" for="file"><span class="inner"><svg class="i"><use href="#i-upload"/></svg>Choose files</span></label>
+                <button class="hand-btn pressable" id="sampleBtn" type="button"><span class="inner">or try the sample →</span></button>
+              </div>
+            </div>
+            <input type="file" id="file" class="sr-only" accept="image/*,video/*,.heic" multiple>
+            <input type="file" id="addFile" class="sr-only" accept="image/*,video/*,.heic" multiple>
+
+            <div id="loaded" hidden>
+              <div class="tray-wrap" id="trayWrap" hidden>
+                <div class="tray-head">
+                  <span class="kicker" id="trayCount"></span><span class="pro" id="batchPro" hidden>Pro</span>
+                  <span class="grow"></span>
+                  <label class="mini pressable" for="addFile"><span class="inner"><svg class="i" style="width:15px;height:15px"><use href="#i-plus"/></svg>Add more</span></label>
+                </div>
+                <div class="tray" id="tray" role="listbox" aria-label="Files in this batch"></div>
+              </div>
+              <div class="stage-head">
+                <svg class="i" id="kindIcon" style="color:var(--teal-ink)"><use href="#i-frame"/></svg>
+                <span class="file-name" id="fileName"></span>
+                <span class="meta" id="dims"></span>
+                <span class="tag" id="sampleTag" hidden>Example</span>
+                <span class="grow"></span>
+                <label class="btn btn-soft btn-sm pressable" for="addFile" id="addBtn"><span class="inner">Add files</span></label>
+                <label class="btn btn-soft btn-sm pressable" for="file"><span class="inner">Start over</span></label>
+              </div>
+              <div class="stage">
+                <div class="frame" id="frameWrap" tabindex="0" aria-label="Crop frames. Arrow keys move the selected frame.">
+                  <img id="preview" alt="Your photo with crop frames" draggable="false">
+                  <svg id="marks" preserveAspectRatio="none" aria-hidden="true"></svg>
+                </div>
+              </div>
+              <div class="focal-note" id="frameNote"></div>
+
+              <div class="video" id="video" hidden>
+                <div class="row">
+                  <svg class="i" style="color:var(--teal-ink)"><use href="#i-film"/></svg>
+                  <input class="scrub" type="range" id="scrub" min="0" step="0.01" value="0" aria-label="Video position">
+                  <span class="time" id="time">0.00 s</span>
+                </div>
+                <div class="row">
+                  <button class="chip tool pressable" id="sharpBtn" type="button"><span class="inner"><svg class="i" style="width:16px;height:16px"><use href="#i-spark"/></svg>Find sharp frames</span></button>
+                  <button class="chip tool pressable" id="sheetBtn" type="button"><span class="inner"><svg class="i" style="width:16px;height:16px"><use href="#i-grid"/></svg>Contact sheet <span class="pro pro-only">Pro</span></span></button>
+                  <span class="row" id="intervalRow" hidden>
+                    <button class="chip tool pressable" id="intervalBtn" type="button"><span class="inner">Grab a frame every <span class="pro pro-only">Pro</span></span></button>
+                    <input class="inline-num" type="number" id="every" value="2" min="0.1" step="0.1" aria-label="Seconds between frames"><span class="meta">s</span>
+                  </span>
+                </div>
+                <div class="row" id="picks"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ready" id="ready" hidden>
+            <span class="apti" id="readyApti" aria-hidden="true"></span>
+            <div class="grow"><span class="hand" aria-hidden="true">all fitted</span><h2 id="readyTitle"></h2><p id="readyWhere"></p>
+              <div class="ready-actions" id="readyActions"></div></div>
+          </div>
+          <div class="alt-box" id="altBox" hidden>
+            <span class="kicker">Suggested alt text</span>
+            <p id="altText"></p>
+            <div class="row"><button class="mini pressable" id="copyAlt" type="button"><span class="inner">Copy alt text</span></button><span class="meta">A starting point. Describe what's actually in the photo.</span></div>
+          </div>
+          <div class="results" id="results"></div>
+          <div class="sheet-out" id="sheetOut" hidden></div>
+        </div>
+
+        <aside class="inspector in" style="--i:2" aria-label="Destinations">
+          <div class="kicker">Destinations <button type="button" id="clearBtn">Clear</button></div>
+          <p class="export-note" id="freeNote" hidden style="text-align:left">Free exports one destination at a time. <button class="toggle-btn" data-view="settings" type="button">Get Pro</button></p>
+          <div id="dests"></div>
+
+          <div class="section" id="namingSection">
+            <div class="section-head"><h3>File names</h3><button class="toggle-btn" id="namingToggle" type="button" aria-expanded="false">SEO names</button></div>
+            <div id="namingFields" hidden>
+              <div class="fields">
+                <label class="field">Location<input id="nLocation" placeholder="lancaster-pa" autocomplete="off"></label>
+                <label class="field">What's in it<input id="nDescriptor" placeholder="timber frame barn" autocomplete="off"></label>
+                <label class="field">Client or industry<input id="nClient" placeholder="smith builders" autocomplete="off"></label>
+                <label class="field">Shot type<input id="nShot" placeholder="wide" autocomplete="off"></label>
+              </div>
+              <div class="row" style="margin-top:8px">
+                <label class="check"><input type="checkbox" id="nNumbered" checked>Number files from</label>
+                <input class="inline-num" type="number" id="nStart" value="1" min="1" max="99" aria-label="First number">
+              </div>
+            </div>
+            <div class="name-preview" id="namePreview" title="The first file name"></div>
+          </div>
+
+          <button class="btn btn-dark export pressable" id="exportBtn" type="button"><span class="inner"><span class="apti working" id="workApti" hidden aria-hidden="true"></span><span id="exportLabel">Export</span></span></button>
+          <p class="export-note" id="exportNote"></p>
+          <p class="error" id="err" role="alert"></p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="page-presets" aria-labelledby="presetsTitle">
+      <div class="presets-page">
+        <div class="hero">
+          <span class="hand" aria-hidden="true">the sizes behind each button</span>
+          <h1 id="presetsTitle">Presets</h1>
+          <p class="sub">Each destination sets the size, crop shape, format, and a file-size target. Aptus searches for the highest quality that fits the target.</p>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Destination</th><th>Size</th><th>Format</th><th>Size target</th><th>Basis</th></tr></thead>
+          <tbody id="presetRows"></tbody>
+        </table></div>
+        <p class="meta" id="limitNote"></p>
+
+        <div class="card" id="customCard">
+          <div class="section-head"><h2>My presets <span class="pro pro-only">Pro</span></h2></div>
+          <p>Add a size Aptus doesn't have, like your site's banner. Leave the height empty to keep each photo's shape.</p>
+          <form class="form-grid" id="customForm">
+            <input type="hidden" id="cId">
+            <label class="field" style="grid-column:1/-1">Name<input id="cName" required maxlength="60" placeholder="Shop banner"></label>
+            <label class="field">Width (px)<input id="cWidth" type="number" min="16" max="12000" placeholder="1920"></label>
+            <label class="field">Height (px)<input id="cHeight" type="number" min="16" max="12000" placeholder="Keep shape"></label>
+            <label class="field">Format<select id="cFormat"><option value="jpg">JPG</option><option value="webp">WebP</option><option value="png">PNG</option><option value="avif">AVIF</option></select></label>
+            <label class="field">Quality<input id="cQuality" type="number" min="30" max="100" value="85"></label>
+            <label class="field">Size target (KB)<input id="cMax" type="number" min="10" placeholder="None"></label>
+            <div class="row"><button class="btn btn-dark btn-sm pressable" type="submit" id="cSave"><span class="inner">Save preset</span></button><button class="toggle-btn" type="button" id="cCancel" hidden>Cancel</button></div>
+          </form>
+          <p class="error" id="cErr" role="alert"></p>
+          <div id="customList" style="display:grid;gap:8px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-settings" aria-labelledby="settingsTitle">
+      <div class="presets-page">
+        <div class="hero">
+          <span class="hand" aria-hidden="true">where things go</span>
+          <h1 id="settingsTitle">Settings</h1>
+          <p class="sub" id="settingsSub">Where exports are saved, your license, and preset updates.</p>
+        </div>
+
+        <div class="card">
+          <h2>Export folder</h2>
+          <div class="path" id="folderPath">Desktop › Aptus Exports</div>
+          <div class="row" id="folderMac">
+            <button class="btn btn-dark btn-sm pressable" id="chooseFolder" type="button"><span class="inner"><svg class="i" style="width:18px;height:18px"><use href="#i-folder"/></svg>Choose folder…</span></button>
+            <button class="btn btn-soft btn-sm pressable" id="revealFolder" type="button"><span class="inner">Show in Finder</span></button>
+            <button class="toggle-btn" id="resetFolder" type="button">Use Desktop › Aptus Exports</button>
+          </div>
+          <form class="row" id="folderForm" hidden>
+            <input class="key-input" id="folderInput" style="flex:1;min-width:200px" placeholder="/Users/you/Desktop/Exports" aria-label="Export folder path">
+            <button class="btn btn-dark btn-sm pressable" type="submit"><span class="inner">Save</span></button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Aptus Pro</h2>
+          <div class="status-line"><span class="dot" id="licDot"></span><strong id="licStatus">Checking…</strong></div>
+          <p id="licText"></p>
+          <form class="row" id="licForm" hidden>
+            <input class="key-input" id="licKey" style="flex:1;min-width:220px" placeholder="License key from your purchase email" autocomplete="off" aria-label="License key">
+            <button class="btn btn-dark btn-sm pressable" type="submit"><span class="inner">Activate</span></button>
+          </form>
+          <div class="row"><button class="toggle-btn" id="licDeactivate" type="button" hidden>Deactivate this Mac</button></div>
+          <p class="error" id="licErr" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h2>Preset updates</h2>
+          <p id="updText">Platform sizes change. When Aptus opens, it checks for an updated preset list and keeps the current one if anything looks wrong.</p>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="autoUpdate" checked>Check when Aptus opens</label>
+            <button class="btn btn-soft btn-sm pressable" id="checkNow" type="button"><span class="inner">Check now</span></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Keyboard</h2>
+          <div class="keys">
+            <span><kbd>⌘O</kbd></span><span>Choose files</span>
+            <span><kbd>⌘E</kbd></span><span>Export</span>
+            <span><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></span><span>Nudge the selected crop (hold Shift to move farther)</span>
+            <span><kbd>[</kbd> <kbd>]</kbd></span><span>Previous or next file in a batch</span>
+            <span><kbd>⌘,</kbd></span><span>Settings</span>
+          </div>
+          <p class="meta" id="versionNote"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="Sections">
+  <button class="tab pressable selected" data-view="home" id="tab-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
+  <button class="tab pressable" data-view="presets" id="tab-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
+  <button class="tab pressable" data-view="settings" id="tab-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
+</nav>
+
+<div class="drop" id="drop" hidden>
+  <div class="drop-box">
+    <span class="apti cropping" aria-hidden="true"></span>
+    <strong id="dropTitle">Drop it here to start fitting</strong>
+    <span>Photos, folders and videos all work</span>
+  </div>
+</div>
+
+<div class="lightbox" id="lb" hidden role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+  <div class="lb-bar">
+    <strong id="lbTitle"></strong><span class="meta" id="lbMeta"></span>
+    <span class="grow"></span>
+    <div class="seg" role="group" aria-label="Compare"><button id="lbAfter" class="on" type="button">Export</button><button id="lbBefore" type="button">Original</button></div>
+    <button class="lb-close" id="lbClose" type="button">Done</button>
+  </div>
+  <div class="lb-view" id="lbView"><img id="lbImg" alt=""></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- data ---------- */
+// Same as presets.json. In the Mac app the server's copy (with any online update and your own presets) replaces this one.
+let PRESETS = [
+  {id:"web-hero",group:"Website",name:"Hero image",width:2560,height:null,format:"webp",quality:82,max_bytes:1000000,basis:"Recommendation",slug:"hero"},
+  {id:"web-content",group:"Website",name:"Content image",width:1600,height:null,format:"webp",quality:80,max_bytes:500000,basis:"Recommendation",slug:"content"},
+  {id:"web-set",group:"Website",name:"Responsive size set (640–2560)",width:null,height:null,format:"webp",quality:80,max_bytes:500000,basis:"One file per width for srcset",slug:"",widths:[640,1024,1600,2560]},
+  {id:"web-og",group:"Website",name:"Link preview (Open Graph)",width:1200,height:627,format:"jpg",quality:85,max_bytes:1000000,basis:"LinkedIn link card size",slug:"og-image"},
+  {id:"ig-feed",group:"Social",name:"Instagram feed (3:4)",width:1080,height:1440,format:"jpg",quality:90,max_bytes:null,basis:"Matches the profile grid",slug:"instagram-3x4"},
+  {id:"ig-feed-45",group:"Social",name:"Instagram feed, boostable (4:5)",width:1080,height:1350,format:"jpg",quality:90,max_bytes:null,basis:"Safe for boosted posts",slug:"instagram-4x5"},
+  {id:"ig-story",group:"Social",name:"Instagram story or Reel cover",width:1080,height:1920,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"instagram-story"},
+  {id:"li-square",group:"Social",name:"LinkedIn square",width:1200,height:1200,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-square"},
+  {id:"li-landscape",group:"Social",name:"LinkedIn landscape",width:1200,height:627,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-landscape"},
+  {id:"li-vertical",group:"Social",name:"LinkedIn vertical",width:1200,height:1500,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-vertical"},
+  {id:"yt-thumb",group:"Social",name:"YouTube thumbnail",width:1280,height:720,format:"jpg",quality:90,max_bytes:2000000,basis:"YouTube 2 MB limit",slug:"youtube-thumbnail"},
+  {id:"portfolio",group:"Portfolio",name:"Portfolio still (full resolution)",width:null,height:null,format:"png",quality:null,max_bytes:null,basis:"Recommendation",slug:"portfolio"},
+];
+let LIMITS = [{id:"webflow-image", name:"Webflow image upload", max_bytes:4000000}];
+const GROUP_ICON = {Website:"i-web", Social:"i-social", Portfolio:"i-frame", "My presets":"i-sliders"};
+const DEFAULT_ON = ["web-hero","ig-feed","li-landscape","yt-thumb"];
+const CROP_COLORS = ["#FF6B6B","#6C5CE7","#5FAE1F","#1FA58F","#F2A93B","#E055A3","#3B82F6","#1E2340"];
+const MIME = {jpg:"image/jpeg",png:"image/png",webp:"image/webp",avif:"image/avif"};
+const IMAGE_EXT = /\.(jpe?g|png|webp|avif|heic|tiff?|bmp|gif)$/i, VIDEO_EXT = /\.(mp4|mov|m4v|mkv|webm|avi)$/i;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtBytes = b => b >= 1e6 ? (b/1e6).toFixed(2)+" MB" : Math.round(b/1e3)+" KB";
+const dimsOf = p => p.widths ? p.widths.join(", ") + " wide" : p.width && p.height ? `${p.width}×${p.height}` : p.width ? `${p.width} wide` : "Original size";
+const tilde = s => String(s).replace(/^\/Users\/[^/]+/, "~");
+
+let MODE = "browser";          // "server" when the local Aptus engine answers, else the browser does the work
+let STATE = {mac: false, license: {pro: true, source: "preview"}, settings: {}, export_folder: "", presets_version: 2};
+const pro = () => !!STATE.license.pro;
+let queue = [];                // files in this batch: {file, name, sample, info, focal, custom, t, thumb, done}
+let cur = -1;                  // index of the file on screen
+let media = null;              // the file on screen: {kind, width, height, name, id?, sample?}
+let source = null;             // browser mode: full-resolution canvas of the photo or current frame
+let focal = [0.5, 0.5], t = 0;
+const selected = new Set(DEFAULT_ON);
+let objectUrls = [];
+
+/* ---------- Apti ---------- */
+const APTI = `<svg viewBox="0 0 120 120"><g class="a-all"> <g class="a-body"><rect x="30" y="30" width="60" height="60" rx="16" fill="#4FC2AE"/> <g class="a-eyes"><circle cx="49" cy="56" r="4.6" fill="#1E2340"/><circle cx="71" cy="56" r="4.6" fill="#1E2340"/></g> <path d="M51 67q9 8 18 0" fill="none" stroke="#1E2340" stroke-width="3.6" stroke-linecap="round"/></g> <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"> <path class="a-br a-tl" d="M14 34V18h16" stroke="#FF6B6B"/> <path class="a-br a-tr" d="M90 18h16v16" stroke="#8BD63A"/> <path class="a-br a-bl" d="M14 86v16h16" stroke="#8BD63A"/> <path class="a-br a-br4" d="M90 102h16V86" stroke="#FF6B6B"/> </g> </g></svg>`;
+document.querySelectorAll('.apti').forEach(el => el.innerHTML = APTI);
+
+/* ---------- small interactions ---------- */
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.add("visible"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("visible"), 3200); }
+document.addEventListener("pointerdown", e => { const b = e.target.closest(".pressable"); if (b) { b.classList.remove("vb-release"); b.classList.add("is-pressed"); } });
+const release = () => document.querySelectorAll(".is-pressed").forEach(b => { b.classList.remove("is-pressed"); void b.offsetWidth; b.classList.add("vb-release"); setTimeout(() => b.classList.remove("vb-release"), 650); });
+document.addEventListener("pointerup", release); document.addEventListener("pointercancel", release);
+
+function show(view) {
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + view));
+  document.querySelectorAll(".nav-link[data-view], .tab[data-view]").forEach(b => b.classList.toggle("selected", b.dataset.view === view));
+  scrollTo({top: 0});
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-view]"); if (b) show(b.dataset.view); });
+
+async function api(path, body, method) {
+  const init = body instanceof FormData ? {method: "POST", body} : body ? {method: method || "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: method || "GET"};
+  const res = await fetch(path, init), data = await res.json().catch(() => ({}));
+  if (res.status === 402) throw new Error(`${data.detail || "That's part of Aptus Pro."} Add your license in Settings.`);
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Something went wrong. Try that again.");
+  return data;
+}
+
+/* ---------- file names (same rules as the engine's naming.py) ---------- */
+function slugify(s, max = 60) {
+  s = String(s || "").normalize("NFKD").replace(/[^\x00-\x7f]/g, "").replace(/&/g, " and ").replace(/'/g, "");
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/^-+|-+$/g, "");
+}
+function naming() {
+  return {location: $("nLocation").value, descriptor: $("nDescriptor").value, client: $("nClient").value, shot: $("nShot").value, numbered: $("nNumbered").checked};
+}
+const namingActive = n => [n.location, n.descriptor, n.client, n.shot].some(v => slugify(v));
+function fileName(stem, slug, ext, n, number, extra = "") {
+  let base;
+  if (n && namingActive(n)) {
+    const parts = [n.location, n.descriptor, n.client, n.shot].map(v => slugify(v, 40)).filter(Boolean);
+    if (n.numbered && number != null) parts.push(String(number).padStart(2, "0"));
+    base = parts.join("-");
+  } else base = slugify(stem) || "image";
+  return [base, slugify(extra), slugify(slug)].filter(Boolean).join("-") + "." + ext;
+}
+function altText(n) {
+  if (!namingActive(n)) return "";
+  let subject = [n.shot, n.descriptor].map(v => v.trim()).filter(Boolean).join(" ");
+  subject = subject ? subject[0].toUpperCase() + subject.slice(1) : "";
+  const tail = []; if (n.client.trim()) tail.push(`for ${n.client.trim()}`); if (n.location.trim()) tail.push(`in ${n.location.trim()}`);
+  let alt = [subject, ...tail].filter(Boolean).join(" ");
+  const cps = Array.from(alt);   // count characters the way Python does (an emoji is one)
+  if (cps.length > 125) alt = cps.slice(0, 125).join("").replace(/\s+\S*$/, "");
+  return alt;
+}
+const stemOf = name => String(name || "").replace(/^Sample · /, "").replace(/\.[^.]+$/, "");
+const startNumber = () => Math.min(Math.max(parseInt($("nStart").value, 10) || 1, 1), 99);
+function renderNamePreview() {
+  const n = naming(), p = PRESETS.find(x => selected.has(x.id)), item = queue[cur];
+  if (!p) { $("namePreview").textContent = "Pick a destination to see the file name."; return; }
+  const extra = [media && media.kind === "video" ? `${t.toFixed(2)}s` : "", p.widths ? `${p.widths[0]}w` : ""].filter(Boolean).join("-");
+  $("namePreview").textContent = fileName(stemOf(item ? item.name : "photo"), p.slug, p.format, n, startNumber(), extra);
+}
+$("namingToggle").addEventListener("click", () => {
+  const open = $("namingFields").hidden; $("namingFields").hidden = !open; $("namingToggle").setAttribute("aria-expanded", open);
+  $("namingToggle").textContent = open ? "Hide" : "SEO names";
+});
+["nLocation","nDescriptor","nClient","nShot","nNumbered","nStart"].forEach(id => $(id).addEventListener("input", renderNamePreview));
+
+/* ---------- destinations ---------- */
+const presetById = id => PRESETS.find(x => x.id === id);
+const isCrop = p => p && p.width && p.height;
+function cropOrder() { return PRESETS.filter(p => selected.has(p.id) && isCrop(p)).map(p => p.id); }
+function fileCount() {
+  return [...selected].reduce((n, id) => { const p = presetById(id); return n + (p && p.widths ? p.widths.length : p ? 1 : 0); }, 0);
+}
+function batchSize() { return pro() ? queue.length : Math.min(queue.length, 1); }
+function renderDests() {
+  for (const id of [...selected]) if (!presetById(id)) selected.delete(id);
+  const groups = {}; PRESETS.forEach(p => (groups[p.group] ||= []).push(p));
+  const order = cropOrder();
+  $("dests").innerHTML = Object.entries(groups).map(([g, list]) => `<div class="group">
+    <div class="group-head"><svg class="i"><use href="#${GROUP_ICON[g] || "i-frame"}"/></svg>${esc(g)}</div>` +
+    list.map(p => {
+      const on = selected.has(p.id), ci = order.indexOf(p.id), locked = p.custom && !pro();
+      const target = p.max_bytes ? ` · under ${fmtBytes(p.max_bytes)}` : "";
+      return `<label class="dest ${on ? "on" : ""} ${locked ? "locked" : ""}" for="d-${p.id}">
+        <input type="checkbox" id="d-${p.id}" value="${p.id}" ${on ? "checked" : ""} ${locked ? "disabled" : ""}>
+        <span class="box"><svg class="i"><use href="#i-check"/></svg></span>
+        <span><span class="dest-name">${esc(p.name)}${locked ? ` <span class="pro">Pro</span>` : ""}</span><small>${dimsOf(p)} · ${p.format.toUpperCase()}${target}${custom[p.id] && on ? ` · <span class="moved">your crop</span>` : ""}</small></span>
+        <span class="swatch" style="${ci >= 0 ? `background:${CROP_COLORS[ci % CROP_COLORS.length]}` : ""}" title="${ci >= 0 ? "Crop outline color" : ""}"></span>
+      </label>`;
+    }).join("") + `</div>`).join("");
+  const files = fileCount() * Math.max(batchSize(), 1), photos = batchSize();
+  $("exportLabel").textContent = !selected.size ? "Pick a destination"
+    : photos > 1 ? `Export ${files} files from ${photos} ${queue.every(q => q.kind === "image") ? "photos" : queue.every(q => q.kind === "video") ? "videos" : "files"}`
+    : `Export ${files} ${files === 1 ? "file" : "files"}`;
+  $("exportBtn").disabled = !selected.size || !media || exporting;
+  $("exportNote").textContent = MODE === "server" ? `Saves to ${tilde(STATE.export_folder || "~/Desktop/Aptus Exports")}` : "Results appear below. Right-click one to save it.";
+  $("freeNote").hidden = pro();
+  $("presetRows").innerHTML = PRESETS.map(p => `<tr><td>${esc(p.name)}${p.custom ? ` <span class="pro">Yours</span>` : ""}</td><td>${dimsOf(p)}</td><td>${p.format.toUpperCase()}</td><td>${p.max_bytes ? "Under " + fmtBytes(p.max_bytes) + (p.widths ? " each" : "") : "None"}</td><td>${esc(p.basis || "")}</td></tr>`).join("");
+  $("limitNote").textContent = LIMITS.length ? `Aptus also warns when a file is too big for ${LIMITS.map(l => `${l.name} (${fmtBytes(l.max_bytes)})`).join(", ")}.` : "";
+  renderNamePreview(); renderTray(); renderCustomList();
+}
+$("dests").addEventListener("change", e => {
+  const id = e.target.value;
+  if (e.target.checked) {
+    if (!pro() && selected.size) { selected.clear(); toast("Free exports one destination at a time. Pro exports to all of them at once."); }
+    selected.add(id); if (isCrop(presetById(id))) active = id;
+  } else selected.delete(id);
+  renderDests(); drawCrops();
+});
+$("clearBtn").addEventListener("click", () => { selected.clear(); renderDests(); drawCrops(); });
+
+/* ---------- crop math (same as the engine's focal_crop_box) ---------- */
+function cropBox(w, h, aspect, [fx, fy]) {
+  let cw, ch;
+  if (w / h > aspect) { cw = Math.round(h * aspect); ch = h; } else { cw = w; ch = Math.round(w / aspect); }
+  cw = Math.max(1, Math.min(cw, w)); ch = Math.max(1, Math.min(ch, h));
+  const left = Math.min(Math.max(Math.round(fx * w - cw / 2), 0), w - cw);
+  const top = Math.min(Math.max(Math.round(fy * h - ch / 2), 0), h - ch);
+  return [left, top, cw, ch];
+}
+/* ---------- crop frames: each one can be dragged and resized on its own ---------- */
+let custom = {};        // preset id -> [x, y, w, h] in source pixels, once the person moves that frame
+let active = null;      // the frame with handles
+function frameFor(id) {
+  const p = presetById(id);
+  return custom[id] || cropBox(media.width, media.height, p.width / p.height, focal);
+}
+function ensureActive() { const ids = cropOrder(); if (!ids.includes(active)) active = ids[0] || null; }
+
+function drawCrops() {
+  if (!media) return;
+  ensureActive();
+  const w = media.width, h = media.height, svg = $("marks"), u = Math.max(w, h) / 320;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const ids = cropOrder(), colorOf = id => CROP_COLORS[ids.indexOf(id) % CROP_COLORS.length];
+  let out = "";
+  if (active) {   // dim everything outside the active frame
+    const [x, y, cw, ch] = frameFor(active);
+    out += `<path d="M0 0H${w}V${h}H0Z M${x} ${y}V${y + ch}H${x + cw}V${y}Z" fill="#1E2340" fill-opacity=".38" fill-rule="evenodd" pointer-events="none"/>`;
+  }
+  for (const id of [...ids.filter(i => i !== active), ...(active ? [active] : [])]) {
+    const [x, y, cw, ch] = frameFor(id), on = id === active, c = colorOf(id);
+    out += `<g data-id="${id}">
+      <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="${u * (on ? 3.4 : 2.4)}" pointer-events="none"/>
+      <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="${c}" stroke-width="${u * (on ? 1.8 : 1.1)}" ${on ? "" : `stroke-dasharray="${u * 4} ${u * 3}"`} pointer-events="none"/>
+      <rect class="hit" x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${on ? "#000" : "none"}" fill-opacity="0" stroke="#000" stroke-opacity="0" stroke-width="${u * 9}" pointer-events="${on ? "all" : "stroke"}" style="cursor:${on ? "move" : "pointer"}"/>`;
+    if (on) {
+      const p = presetById(id), small = cw < p.width || ch < p.height;
+      const label = `${p.name} · ${cw}×${ch}`, fs = u * 6.2, lw = label.length * fs * .55 + u * 9;
+      const ly = y > fs * 2.4 ? y - fs * 2.1 : y + u * 3;
+      out += `<rect x="${x}" y="${ly}" width="${lw}" height="${fs * 1.8}" rx="${fs * .9}" fill="${small ? "#A8401F" : "#1E2340"}" pointer-events="none"/>
+        <text x="${x + u * 4}" y="${ly + fs * 1.25}" font-size="${fs}" font-family="Avenir Next, Nunito, sans-serif" font-weight="600" fill="#fff" pointer-events="none">${esc(label)}</text>`;
+      for (const [hx, hy, k] of [[x, y, "tl"], [x + cw, y, "tr"], [x, y + ch, "bl"], [x + cw, y + ch, "br"]])
+        out += `<circle data-h="${k}" cx="${hx}" cy="${hy}" r="${u * 4.2}" fill="#fff" stroke="${c}" stroke-width="${u * 1.6}" pointer-events="all" style="cursor:${k === "tl" || k === "br" ? "nwse" : "nesw"}-resize"/>`;
+    }
+    out += `</g>`;
+  }
+  const r = Math.max(w, h) / 80;
+  out += `<circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r * 1.9}" fill="#fff" fill-opacity=".35" pointer-events="none"/>
+    <circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r}" fill="#FF6B6B" stroke="#fff" stroke-width="${r / 2.5}" pointer-events="none"/>`;
+  svg.innerHTML = out;
+  updateFrameNote();
+}
+
+function updateFrameNote() {
+  const note = $("frameNote"); if (!note) return;
+  if (!active) { note.innerHTML = `<span class="hand" aria-hidden="true">tap the subject</span>Pick a destination with a fixed size to see its crop.`; return; }
+  const p = presetById(active), [, , cw, ch] = frameFor(active), small = cw < p.width || ch < p.height;
+  note.innerHTML = `<span class="hand" aria-hidden="true">drag to frame it</span>
+    <span>Editing <b>${esc(p.name)}</b>. Drag the frame to move it and a corner to crop tighter.${small ? ` <span class="warn-inline">This area is ${cw}×${ch}, smaller than ${p.width}×${p.height}, so it will be enlarged.</span>` : ""}</span>
+    ${custom[active] ? `<button class="chip pressable" id="resetFrame" type="button"><span class="inner">Reset this crop</span></button>` : ""}`;
+}
+document.addEventListener("click", e => { if (e.target.closest("#resetFrame")) { delete custom[active]; drawCrops(); renderDests(); } });
+
+/* pointer handling: move, resize, select, or set the focal point */
+let drag = null;
+const toSource = e => { const r = $("preview").getBoundingClientRect(); return [(e.clientX - r.left) * media.width / r.width, (e.clientY - r.top) * media.height / r.height]; };
+$("frameWrap").addEventListener("pointerdown", e => {
+  if (!media || e.button > 0) return;
+  const [sx, sy] = toSource(e), handle = e.target.closest("[data-h]"), g = e.target.closest("[data-id]");
+  if (g && g.dataset.id !== active && !handle) { active = g.dataset.id; drawCrops(); renderDests(); }
+  const id = active;
+  if (handle && id) {
+    const [x, y, cw, ch] = frameFor(id), k = handle.dataset.h;
+    drag = {kind: "resize", id, ax: k.includes("l") ? x + cw : x, ay: k.includes("t") ? y + ch : y, left: k.includes("l"), top: k.includes("t")};
+  } else if (g && id) {
+    const [x, y] = frameFor(id); drag = {kind: "move", id, ox: sx - x, oy: sy - y, sx, sy, moved: false};
+  } else drag = {kind: "focal", sx, sy, moved: false};
+  $("frameWrap").setPointerCapture(e.pointerId); e.preventDefault();
+});
+$("frameWrap").addEventListener("pointermove", e => {
+  if (!drag) return;
+  const [px, py] = toSource(e), w = media.width, h = media.height;
+  if (drag.kind !== "resize" && Math.hypot(px - drag.sx, py - drag.sy) > w / 200) drag.moved = true;
+  if (drag.kind === "move" && drag.moved) {
+    const [, , cw, ch] = frameFor(drag.id);
+    custom[drag.id] = [Math.round(Math.min(Math.max(px - drag.ox, 0), w - cw)), Math.round(Math.min(Math.max(py - drag.oy, 0), h - ch)), cw, ch];
+    drawCrops();
+  } else if (drag.kind === "resize") {
+    const p = presetById(drag.id), a = p.width / p.height;
+    const maxW = Math.min(drag.left ? drag.ax : w - drag.ax, (drag.top ? drag.ay : h - drag.ay) * a);
+    let cw = Math.max(Math.abs(px - drag.ax), Math.abs(py - drag.ay) * a);
+    cw = Math.round(Math.min(Math.max(cw, Math.max(48, w * .05)), maxW));
+    const ch = Math.round(cw / a);
+    custom[drag.id] = [drag.left ? drag.ax - cw : drag.ax, drag.top ? drag.ay - ch : drag.ay, cw, ch];
+    drawCrops();
+  }
+});
+const endDrag = () => {
+  if (!drag) return;
+  if (!drag.moved && drag.kind !== "resize") {   // a tap, not a drag: set the focal point
+    focal = [Math.min(Math.max(drag.sx / media.width, 0), 1), Math.min(Math.max(drag.sy / media.height, 0), 1)];
+    drawCrops();
+  } else renderDests();
+  drag = null; stash();
+};
+$("frameWrap").addEventListener("pointerup", endDrag); $("frameWrap").addEventListener("pointercancel", endDrag);
+$("frameWrap").addEventListener("keydown", e => {   // arrow keys nudge the active frame; Shift moves farther
+  if (!active || !e.key.startsWith("Arrow")) return;
+  const step = Math.round((e.shiftKey ? .05 : .01) * media.width), [x, y, cw, ch] = frameFor(active);
+  const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0, dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+  custom[active] = [Math.min(Math.max(x + dx, 0), media.width - cw), Math.min(Math.max(y + dy, 0), media.height - ch), cw, ch];
+  drawCrops(); renderDests(); stash(); e.preventDefault();
+});
+const fractionsOf = (cust, w, h) => Object.fromEntries(Object.entries(cust).filter(([id]) => selected.has(id))
+  .map(([id, [x, y, cw, ch]]) => [id, [x / w, y / h, cw / w, ch / h]]));
+
+/* ---------- the batch: one or many files ---------- */
+function stash() {   // keep the on-screen file's crops with it
+  const it = queue[cur]; if (!it || !media) return;
+  it.focal = focal; it.custom = custom; it.t = t;
+}
+function renderTray() {
+  const many = queue.length > 1;
+  $("trayWrap").hidden = !many;
+  $("addBtn").hidden = many;
+  if (!many) return;
+  $("batchPro").hidden = pro();
+  $("trayCount").textContent = pro() ? `${queue.length} files in this batch` : `${queue.length} files · Free exports the one selected`;
+  $("tray").innerHTML = queue.map((it, i) => `<div class="tray-item ${i === cur ? "current" : ""} ${it.done ? "done" : ""}" role="option" aria-selected="${i === cur}" tabindex="0" data-i="${i}" title="${esc(it.name)}">
+      ${it.thumb ? `<img src="${it.thumb}" alt="">` : `<svg class="i"><use href="#${it.kind === "video" ? "i-film" : "i-frame"}"/></svg>`}
+      <span class="n">${i + 1}</span><button class="x" type="button" data-remove="${i}" aria-label="Remove ${esc(it.name)}">×</button></div>`).join("");
+}
+$("tray").addEventListener("click", e => {
+  if (exporting) { toast("Wait for the export to finish."); return; }
+  const rm = e.target.closest("[data-remove]");
+  if (rm) { removeItem(+rm.dataset.remove); return; }
+  const el = e.target.closest("[data-i]"); if (el && +el.dataset.i !== cur) selectItem(+el.dataset.i);
+});
+$("tray").addEventListener("keydown", e => { if (exporting) return; const el = e.target.closest("[data-i]"); if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectItem(+el.dataset.i); } });
+function removeItem(i) {
+  stash(); queue.splice(i, 1);
+  if (!queue.length) { cur = -1; media = null; $("loaded").hidden = true; $("empty").hidden = false; renderDests(); return; }
+  const next = Math.min(i <= cur ? Math.max(cur - 1, 0) : cur, queue.length - 1); cur = -1; selectItem(next);
+}
+
+const kindOf = f => (f.type || "").startsWith("video/") || VIDEO_EXT.test(f.name) ? "video" : (f.type || "").startsWith("image/") || IMAGE_EXT.test(f.name) ? "image" : null;
+async function addFiles(files, {replace = false, opts = {}} = {}) {
+  if (exporting) { toast("Wait for the export to finish, then add more."); return; }
+  files = [...files].filter(f => kindOf(f));
+  if (!files.length) { toast("Aptus opens photos and videos. Nothing in that drop was either."); return; }
+  $("err").textContent = "";
+  if (replace) { queue = []; cur = -1; objectUrls.forEach(URL.revokeObjectURL); objectUrls = []; clearResults(); }
+  stash();
+  const first = queue.length;
+  for (const f of files) queue.push({file: f, name: opts.name || f.name, sample: opts.sample, kind: kindOf(f), focal: opts.focal || [.5, .5], custom: {}, t: 0, thumb: null, info: null, done: false});
+  queue.slice(first).forEach(it => { if (it.kind === "image" && MODE === "browser") { it.thumb = URL.createObjectURL(it.file); objectUrls.push(it.thumb); } });
+  await selectItem(first);
+  if (MODE === "server" && files.length > 1) (async () => {   // upload the rest in the background for tray thumbnails
+    for (const it of queue.slice(first)) { try { await ensureUploaded(it); } catch {} renderTray(); }
+  })();
+  if (files.length > 1) toast(`${files.length} files added. Click one to frame it; untouched files use the center.`);
+}
+function ensureUploaded(it) {   // server mode: send the file to the local engine once
+  it.up ||= (async () => {
+    const form = new FormData(); form.append("file", it.file);
+    try { it.info = await api("/api/upload", form); } catch (e) { it.up = null; throw e; }
+    it.thumb = `/api/preview/${it.info.id}?t=0`;
+    return it.info;
+  })();
+  return it.up;
+}
+let selTok = 0;
+async function selectItem(i) {   // shows file i; returns false if it couldn't be opened
+  stash();
+  const it = queue[i]; if (!it) return false;
+  const tok = ++selTok;
+  // Nothing on screen belongs to the new file until it has loaded, so edits can't land on the wrong file.
+  media = null; source = null; cur = i; active = null; $("picks").innerHTML = ""; renderTray();
+  try {
+    if (MODE === "server") {
+      const info = await ensureUploaded(it);
+      if (tok !== selTok) return false;   // another file was picked while this one uploaded
+      focal = it.focal; custom = it.custom; t = it.t;
+      if (info.kind === "video") { $("scrub").max = Math.max(info.duration - 0.05, 0); }
+      setLoaded({...info, name: it.name, sample: it.sample}, `/api/preview/${info.id}?t=${t}`);
+    } else {
+      focal = it.focal; custom = it.custom; t = it.t;
+      await openInBrowser(it, tok);
+      if (tok !== selTok) return false;
+    }
+    $("scrub").value = t; $("time").textContent = t.toFixed(2) + " s";
+    return true;
+  } catch (e) {
+    if (tok === selTok) { $("err").textContent = `${it.name}: ${e.message}`; toast(e.message); }
+    return false;
+  }
+}
+function setLoaded(info, previewSrc) {
+  media = info;
+  $("empty").hidden = true; $("loaded").hidden = false;
+  $("fileName").textContent = info.name;
+  $("dims").textContent = `${info.width}×${info.height}` + (info.duration ? ` · ${info.duration.toFixed(1)} s` : "");
+  $("sampleTag").hidden = !info.sample;
+  $("kindIcon").innerHTML = `<use href="#${info.kind === "video" ? "i-film" : "i-frame"}"/>`;
+  $("video").hidden = info.kind !== "video";
+  $("intervalRow").hidden = MODE !== "server";
+  $("preview").src = previewSrc;
+  renderDests(); drawCrops();
+}
+function clearResults() { $("results").innerHTML = ""; $("ready").hidden = true; $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
+$("file").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files, {replace: true}); e.target.value = ""; });
+$("addFile").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files); e.target.value = ""; });
+
+/* browser mode: everything runs on this page */
+async function openInBrowser(it, tok) {
+  const url = URL.createObjectURL(it.file); objectUrls.push(url);
+  if (it.kind === "video") {
+    vid.src = url;
+    await new Promise((res, rej) => { vid.onloadedmetadata = res; vid.onerror = () => rej(new Error("This browser can't play that video. Try an MP4.")); });
+    $("scrub").max = Math.max(vid.duration - 0.05, 0);
+    await seek(t); if (tok !== selTok) return;
+    source = frameCanvas();
+    setLoaded({kind: "video", width: source.width, height: source.height, duration: vid.duration, name: it.name}, previewOf(source));
+  } else {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("This browser can't open that image. Try a JPG or PNG.")); img.src = url; });
+    if (tok !== selTok) return;
+    source = document.createElement("canvas"); source.width = img.naturalWidth; source.height = img.naturalHeight;
+    source.getContext("2d").drawImage(img, 0, 0);
+    setLoaded({kind: "image", width: source.width, height: source.height, name: it.name, sample: it.sample}, previewOf(source));
+  }
+}
+function previewOf(c) {
+  const s = Math.min(1, 1600 / Math.max(c.width, c.height)), p = document.createElement("canvas");
+  p.width = Math.round(c.width * s); p.height = Math.round(c.height * s);
+  p.getContext("2d").drawImage(c, 0, 0, p.width, p.height);
+  return p.toDataURL("image/jpeg", .86);
+}
+
+/* ---------- video ---------- */
+const vid = document.createElement("video"); vid.id = "vid"; vid.muted = true; vid.playsInline = true; vid.preload = "auto"; vid.hidden = true; document.body.append(vid);
+function seek(time) { return new Promise(res => { if (Math.abs(vid.currentTime - time) < .001 && vid.readyState >= 2) return res(); vid.onseeked = () => res(); vid.currentTime = time; }); }
+function frameCanvas(maxW) {
+  const s = maxW ? Math.min(1, maxW / vid.videoWidth) : 1, c = document.createElement("canvas");
+  c.width = Math.round(vid.videoWidth * s); c.height = Math.round(vid.videoHeight * s);
+  c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height); return c;
+}
+async function goTo(time) {
+  if (!media) return;
+  t = time; $("time").textContent = t.toFixed(2) + " s"; $("scrub").value = t; stash(); renderNamePreview();
+  if (MODE === "server") { $("preview").src = `/api/preview/${media.id}?t=${t}`; }
+  else { await seek(t); source = frameCanvas(); $("preview").src = previewOf(source); }
+}
+let scrubTimer;
+$("scrub").addEventListener("input", e => { t = parseFloat(e.target.value); $("time").textContent = t.toFixed(2) + " s"; clearTimeout(scrubTimer); scrubTimer = setTimeout(() => goTo(t), 120); });
+
+function sharpness(c) {   // variance of the Laplacian, the engine's score
+  const w = c.width, h = c.height, d = c.getContext("2d").getImageData(0, 0, w, h).data, g = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) g[i] = .299 * d[i*4] + .587 * d[i*4+1] + .114 * d[i*4+2];
+  let s = 0, q = 0, n = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, l = g[i-w] + g[i+w] + g[i-1] + g[i+1] - 4 * g[i]; s += l; q += l * l; n++; }
+  const m = s / n; return q / n - m * m;
+}
+$("sharpBtn").addEventListener("click", async () => {
+  $("sharpBtn").disabled = true; $("picks").innerHTML = `<span class="meta">Scoring frames near ${t.toFixed(2)} s…</span>`;
+  try {
+    let picks;
+    if (MODE === "server") picks = await api("/api/sharp", {id: media.id, t});
+    else {
+      const t0 = t, start = Math.max(0, t0 - 1), end = Math.min(vid.duration - .05, t0 + 1), scored = [];
+      for (let x = start; x <= end + 1e-6; x += .1) { await seek(x); scored.push({t: +x.toFixed(2), score: sharpness(frameCanvas(480))}); }
+      scored.sort((a, b) => b.score - a.score); picks = [];
+      for (const s of scored) { if (picks.every(p => Math.abs(p.t - s.t) >= .2)) picks.push(s); if (picks.length === 3) break; }
+      await goTo(t0);
+    }
+    $("picks").innerHTML = picks.map((p, i) => `<button class="chip pressable ${i ? "" : "best"}" data-t="${p.t}"><span class="inner">${i ? "Also sharp" : "Sharpest"} · ${(+p.t).toFixed(2)} s</span></button>`).join("");
+  } catch (e) { $("picks").innerHTML = ""; toast(e.message); }
+  $("sharpBtn").disabled = false;
+});
+$("picks").addEventListener("click", e => { const b = e.target.closest("button"); if (b) goTo(parseFloat(b.dataset.t)); });
+
+$("sheetBtn").addEventListener("click", async () => {
+  $("sheetBtn").disabled = true;
+  try {
+    let src, label;
+    if (MODE === "server") { const d = await api("/api/contact-sheet", {id: media.id}); src = `/api/file/${encodeURIComponent(d.file)}`; label = `${d.file} · ${d.width}×${d.height}, saved`; }
+    else {
+      const t0 = t, count = 12, cols = 4, tw = 480, gap = 12, th = Math.round(tw * vid.videoHeight / vid.videoWidth), rows = Math.ceil(count / cols);
+      const c = document.createElement("canvas"); c.width = cols * tw + (cols + 1) * gap; c.height = rows * th + (rows + 1) * gap;
+      const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < count; i++) { await seek(vid.duration * (i + .5) / count); g.drawImage(vid, gap + (i % cols) * (tw + gap), gap + Math.floor(i / cols) * (th + gap), tw, th); }
+      await goTo(t0); src = c.toDataURL("image/jpeg", .9); label = `${c.width}×${c.height}`;
+    }
+    $("sheetOut").hidden = false;
+    $("sheetOut").innerHTML = `<div class="row" style="justify-content:space-between"><h2>Contact sheet</h2><span class="meta">${esc(label)}</span></div><img alt="Contact sheet of 12 frames" src="${src}">`;
+  } catch (e) { toast(e.message); }
+  $("sheetBtn").disabled = false;
+});
+$("intervalBtn").addEventListener("click", async () => {
+  try { const d = await api("/api/interval", {id: media.id, every: parseFloat($("every").value)}); toast(`Saved ${d.files.length} frames to ${tilde(d.folder)}`); }
+  catch (e) { toast(e.message); }
+});
+
+/* ---------- export ---------- */
+function resize(src, sx, sy, sw, sh, tw, th) {
+  let c = document.createElement("canvas"); c.width = sw; c.height = sh;
+  c.getContext("2d").drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+  while (c.width / 2 >= tw && c.height / 2 >= th) {
+    const n = document.createElement("canvas"); n.width = Math.round(c.width / 2); n.height = Math.round(c.height / 2);
+    const g = n.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(c, 0, 0, n.width, n.height); c = n;
+  }
+  const out = document.createElement("canvas"); out.width = tw; out.height = th;
+  const g = out.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(c, 0, 0, tw, th); return out;
+}
+const toBlob = (c, type, q) => new Promise(res => c.toBlob(res, type, q));
+async function encode(c, p) {
+  const type = MIME[p.format];
+  if (p.format === "jpg") { const f = document.createElement("canvas"); f.width = c.width; f.height = c.height; const g = f.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, f.width, f.height); g.drawImage(c, 0, 0); c = f; }
+  if (!p.quality) return {blob: await toBlob(c, type), quality: null, met: null};
+  let blob = await toBlob(c, type, p.quality / 100);
+  if (!p.max_bytes || blob.size <= p.max_bytes) return {blob, quality: p.quality, met: p.max_bytes ? true : null};
+  let lo = 30, hi = p.quality - 1, best = null;
+  while (lo <= hi) { const mid = (lo + hi) >> 1, b = await toBlob(c, type, mid / 100); if (b.size <= p.max_bytes) { best = {blob: b, quality: mid}; lo = mid + 1; } else hi = mid - 1; }
+  return best ? {...best, met: true} : {blob: await toBlob(c, type, .3), quality: 30, met: false};
+}
+const limitWarnings = bytes => LIMITS.filter(l => bytes > l.max_bytes).map(l => `Too big for ${l.name} (${fmtBytes(l.max_bytes)} limit).`);
+async function exportInBrowser(p, item, number, n) {
+  const w = source.width, h = source.height, extra0 = media.kind === "video" ? `${t.toFixed(2)}s` : "";
+  const jobs = [];   // [canvas, width tag, warnings]
+  if (p.widths) {
+    const ws = p.widths.filter(x => x <= w), skipped = p.widths.filter(x => x > w);
+    for (const x of (ws.length ? ws : [w])) jobs.push([resize(source, 0, 0, w, h, x, Math.round(h * x / w)), `${x}w`, []]);
+    if (skipped.length) jobs[jobs.length - 1][2].push(`The source is ${w}px wide, so ${skipped.map(x => x + "px").join(", ")} ${skipped.length === 1 ? "was" : "were"} skipped rather than enlarged.`);
+  } else if (isCrop(p)) {
+    const [x, y, cw, ch] = custom[p.id] || cropBox(w, h, p.width / p.height, focal);
+    const warn = cw < p.width || ch < p.height ? [`The cropped area is ${cw}×${ch}, smaller than ${p.width}×${p.height}, so it's enlarged and may look soft.`] : [];
+    jobs.push([resize(source, x, y, cw, ch, p.width, p.height), "", warn]);
+  } else if (p.width && w > p.width) jobs.push([resize(source, 0, 0, w, h, p.width, Math.round(h * p.width / w)), "", []]);
+  else jobs.push([resize(source, 0, 0, w, h, w, h), "", p.width ? [`The source is ${w}px wide, under ${p.width}px, so it keeps its original width.`] : []]);
+  const out = [];
+  for (const [canvas, tag, warnings] of jobs) {
+    const r = await encode(canvas, p), ext = (r.blob.type || "").replace("image/", "").replace("jpeg", "jpg");
+    if (ext && ext !== p.format) warnings.push(`This browser can't make ${p.format.toUpperCase()} files, so you see a ${ext.toUpperCase()}. The Mac app makes ${p.format.toUpperCase()}.`);
+    if (r.met === false) warnings.push(`Couldn't get under ${fmtBytes(p.max_bytes)} at the lowest allowed quality.`);
+    const url = URL.createObjectURL(r.blob); objectUrls.push(url);
+    out.push({preset: p.name, file: fileName(stemOf(item.name), p.slug, ext || p.format, n, number, [extra0, tag].filter(Boolean).join("-")),
+      width: canvas.width, height: canvas.height, bytes: r.blob.size, quality: r.quality, target_met: r.met,
+      warnings: [...warnings, ...limitWarnings(r.blob.size)], url, refCanvas: canvas});
+  }
+  return out;
+}
+let RESULTS = [];
+function addResult(r) {
+  const i = RESULTS.push(r) - 1, finder = MODE === "server" && STATE.mac;
+  $("results").insertAdjacentHTML("beforeend", `<article class="result" style="--i:${Math.min(i, 12)}">
+    <div class="thumb" data-zoom="${i}" title="Check at 100%"><img src="${r.url}" alt="${esc(r.preset)} result" loading="lazy"></div>
+    <div class="result-body"><h3>${esc(r.preset)}</h3>
+      <div class="meta" style="overflow-wrap:anywhere">${esc(r.file)}</div>
+      <div class="pills"><span class="pill">${r.width}×${r.height}</span><span class="pill">${fmtBytes(r.bytes)}</span>${r.quality ? `<span class="pill">Quality ${r.quality}</span>` : ""}${r.target_met === true ? `<span class="pill ok">Under target</span>` : ""}</div>
+      ${r.warnings.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
+      <div class="result-actions"><button class="mini pressable" data-zoom="${i}" type="button"><span class="inner"><svg class="i" style="width:14px;height:14px"><use href="#i-zoom"/></svg>100%</span></button>
+      ${finder ? `<button class="mini pressable" data-ql="${i}" type="button"><span class="inner">Quick Look</span></button><button class="mini pressable" data-reveal="${i}" type="button"><span class="inner">Show in Finder</span></button>` : ""}</div>
+    </div></article>`);
+}
+$("results").addEventListener("click", async e => {
+  const z = e.target.closest("[data-zoom]"), q = e.target.closest("[data-ql]"), rv = e.target.closest("[data-reveal]");
+  try {
+    if (z) openZoom(RESULTS[+z.dataset.zoom]);
+    else if (q) await api("/api/quicklook", {file: RESULTS[+q.dataset.ql].file});
+    else if (rv) await api("/api/reveal", {file: RESULTS[+rv.dataset.reveal].file});
+  } catch (err) { toast(err.message); }
+});
+function celebrate(n, where, alt) {
+  $("readyTitle").textContent = `${n} ${n === 1 ? "file" : "files"} ready`;
+  $("readyWhere").textContent = where;
+  $("readyActions").innerHTML = MODE === "server" && STATE.mac ? `<button class="mini pressable" id="openFolder" type="button"><span class="inner"><svg class="i" style="width:15px;height:15px"><use href="#i-folder"/></svg>Show in Finder</span></button>` : "";
+  const a = $("readyApti"); $("ready").hidden = false; a.classList.remove("cheer"); void a.offsetWidth; a.classList.add("cheer");
+  $("altBox").hidden = !alt; $("altText").textContent = alt || "";
+}
+document.addEventListener("click", async e => { if (e.target.closest("#openFolder")) { try { await api("/api/reveal", {}); } catch (err) { toast(err.message); } } });
+$("copyAlt").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("altText").textContent); toast("Alt text copied"); } catch { toast("Select the text and copy it."); } });
+
+let exporting = false;
+function working(on) {
+  exporting = on; $("workApti").hidden = !on; $("exportBtn").disabled = on || !selected.size || !media;
+  if (on) $("exportLabel").textContent = "Fitting…";
+}
+async function runExport() {
+  if (!media || !selected.size || exporting) return;
+  $("err").textContent = ""; clearResults(); RESULTS = []; stash();
+  working(true);
+  const list = PRESETS.filter(p => selected.has(p.id)), n = naming(), start = startNumber();
+  const items = pro() ? [...queue] : [queue[cur]];
+  const batch = items.length > 1, keepItem = queue[cur];
+  let count = 0, folder = "";
+  const failed = [];
+  try {
+    for (const [k, it] of items.entries()) {
+      const number = start + k;
+      if (batch) $("exportLabel").textContent = `Fitting ${k + 1} of ${items.length}…`;
+      if (MODE === "server") {
+        const info = await ensureUploaded(it), w = info.width, h = info.height;
+        const d = await api("/api/export", {id: info.id, presets: list.map(p => p.id), focal: it.focal, t: it.t, boxes: fractionsOf(it.custom, w, h), naming: n, number, batch});
+        folder = d.folder;
+        d.results.forEach(r => addResult({...r, url: `/api/file/${encodeURIComponent(r.file)}`,
+          ref: {id: info.id, preset: r.preset_id, focal: it.focal, t: it.t, box: fractionsOf(it.custom, w, h)[r.preset_id] || null, width: r.width}}));
+        count += d.results.length;
+      } else {
+        if (queue[cur] !== it || !media) {
+          if (!(await selectItem(queue.indexOf(it)))) { failed.push(it.name); continue; }
+        }
+        for (const p of list) for (const r of await exportInBrowser(p, it, number, n)) { addResult(r); count++; }
+      }
+      it.done = true; renderTray();
+    }
+    if (failed.length) $("err").textContent = `Skipped ${failed.length === 1 ? "a file" : failed.length + " files"} this browser couldn't open: ${failed.join(", ")}`;
+    if (!pro() && queue.length > 1) toast("Free exported the selected file. Pro exports the whole batch.");
+    celebrate(count, MODE === "server" ? `Saved to ${tilde(folder)}` : "Right-click any result to save it. The Mac app saves to a folder.", altText(n));
+    if (MODE === "server") STATE.settings.last_presets = list.map(p => p.id);
+  } catch (e) { $("err").textContent = e.message; }
+  working(false);
+  if (MODE === "browser" && queue[cur] !== keepItem && queue.includes(keepItem)) await selectItem(queue.indexOf(keepItem));
+  renderDests();
+}
+$("exportBtn").addEventListener("click", runExport);
+
+/* ---------- check at 100%: the export next to a lossless render of the same crop ---------- */
+let zoom = null;
+async function openZoom(r) {
+  zoom = {r, before: null, showing: "after"};
+  $("lbTitle").textContent = r.preset; $("lbMeta").textContent = `${r.width}×${r.height} · ${fmtBytes(r.bytes)} · actual pixels`;
+  setZoomSrc(r.url); $("lbAfter").classList.add("on"); $("lbBefore").classList.remove("on");
+  $("lb").hidden = false; $("lbClose").focus();
+  beforeSrc().catch(() => {});   // get the original ready so switching is instant
+}
+function setZoomSrc(src) {
+  const img = $("lbImg"), r = zoom.r;
+  img.src = src; img.style.width = r.width / (devicePixelRatio || 1) + "px"; img.alt = `${r.preset}, ${zoom.showing === "after" ? "exported file" : "original quality"}`;
+}
+function beforeSrc() {
+  return zoom.before ||= renderBefore(zoom.r).catch(e => { if (zoom) zoom.before = null; throw e; });
+}
+async function renderBefore(r) {
+  let url;
+  if (r.refCanvas) url = URL.createObjectURL(await toBlob(r.refCanvas, "image/png"));
+  else {
+    const res = await fetch("/api/reference", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(r.ref)});
+    if (!res.ok) throw new Error("Couldn't render the original for comparison.");
+    url = URL.createObjectURL(await res.blob());
+  }
+  objectUrls.push(url); return url;
+}
+async function zoomTo(which) {
+  if (!zoom || zoom.showing === which) return;
+  const v = $("lbView"), sx = v.scrollLeft, sy = v.scrollTop;
+  const z = zoom; z.showing = which;
+  $("lbAfter").classList.toggle("on", which === "after"); $("lbBefore").classList.toggle("on", which === "before");
+  let src;
+  if (which === "before") { $("lbMeta").textContent = "Rendering the original…"; try { src = await beforeSrc(); } catch (e) { toast(e.message); z.showing = "before-failed"; if (zoom === z) zoomTo("after"); return; } }
+  if (zoom !== z || z.showing !== which) return;   // closed or switched again while rendering
+  setZoomSrc(which === "after" ? z.r.url : src);
+  $("lbMeta").textContent = which === "after" ? `${z.r.width}×${z.r.height} · ${fmtBytes(z.r.bytes)} · actual pixels` : `${z.r.width}×${z.r.height} · original quality, no compression`;
+  requestAnimationFrame(() => { v.scrollLeft = sx; v.scrollTop = sy; });
+}
+$("lbAfter").addEventListener("click", () => zoomTo("after"));
+$("lbBefore").addEventListener("click", () => zoomTo("before"));
+const closeZoom = () => { $("lb").hidden = true; zoom = null; };
+$("lbClose").addEventListener("click", closeZoom);
+$("lb").addEventListener("click", e => { if (e.target === $("lbView")) closeZoom(); });
+
+/* ---------- keyboard ---------- */
+addEventListener("keydown", e => {
+  const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
+  if (!$("lb").hidden) {
+    if (e.key === "Escape") closeZoom();
+    else if (e.key === "b" || e.key === "B") zoomTo(zoom.showing === "after" ? "before" : "after");
+    return;
+  }
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $("file").click(); }
+  else if (mod && e.key.toLowerCase() === "e") { e.preventDefault(); show("home"); runExport(); }
+  else if (mod && e.key === ",") { e.preventDefault(); show("settings"); }
+  else if (!typing && !mod && !exporting && (e.key === "[" || e.key === "]") && queue.length > 1) {
+    selectItem((cur + (e.key === "]" ? 1 : queue.length - 1)) % queue.length);
+  }
+});
+
+/* ---------- drop anywhere: files or whole folders ---------- */
+let depth = 0;
+addEventListener("dragenter", e => { if (![...e.dataTransfer.types].includes("Files")) return; e.preventDefault(); depth++; $("dropTitle").textContent = media ? "Drop to add to this batch" : "Drop it here to start fitting"; $("drop").hidden = false; });
+addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; $("drop").hidden = true; } });
+addEventListener("dragover", e => e.preventDefault());
+function readEntry(entry) {   // walks a dropped folder (and its subfolders) for files
+  return new Promise(res => {
+    if (entry.isFile) entry.file(f => res([f]), () => res([]));
+    else if (entry.isDirectory) {
+      const reader = entry.createReader(), all = [];
+      const next = () => reader.readEntries(async ents => {
+        if (!ents.length) { const nested = await Promise.all(all.map(readEntry)); res(nested.flat()); return; }
+        all.push(...ents); next();
+      }, () => res([]));
+      next();
+    } else res([]);
+  });
+}
+addEventListener("drop", async e => {
+  e.preventDefault(); depth = 0; $("drop").hidden = true;
+  const entries = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  let files = entries.length ? (await Promise.all(entries.map(readEntry))).flat() : [...e.dataTransfer.files];
+  files = files.filter(f => !f.name.startsWith(".")).sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+  if (files.length) addFiles(files, {replace: !media});
+});
+
+/* ---------- sample photo: the barn studio illustration ---------- */
+async function loadSample(thenExport) {
+  try {
+    const res = await fetch("static/sample.jpg");
+    if (!res.ok) throw new Error();
+    const blob = await res.blob();
+    // The camera in the barn doorway is the focal point.
+    await addFiles([new File([blob], "barn-studio.jpg", {type: "image/jpeg"})], {replace: true, opts: {name: "Sample · barn-studio.jpg", sample: true, focal: [.27, .55]}});
+    if (thenExport) runExport();
+  } catch { toast("The sample couldn't load. Drop in a photo of your own instead."); }
+}
+$("sampleBtn").addEventListener("click", () => loadSample(true));
+
+/* ---------- my presets ---------- */
+function renderCustomList() {
+  const mine = PRESETS.filter(p => p.custom);
+  $("customList").innerHTML = mine.length ? mine.map(p => `<div class="custom-row"><div class="grow"><strong>${esc(p.name)}</strong><small>${dimsOf(p)} · ${p.format.toUpperCase()}${p.max_bytes ? " · under " + fmtBytes(p.max_bytes) : ""}</small></div>
+    <button class="mini pressable" data-edit="${p.id}" type="button"><span class="inner">Edit</span></button><button class="mini pressable" data-del="${p.id}" type="button"><span class="inner">Delete</span></button></div>`).join("")
+    : `<p class="meta">No presets of your own yet.</p>`;
+  document.querySelectorAll(".pro-only").forEach(el => el.hidden = pro());
+  $("customForm").querySelectorAll("input,select,button").forEach(el => el.disabled = !pro());
+}
+function forgetCrops(id) { delete custom[id]; queue.forEach(it => { if (it.custom) delete it.custom[id]; }); }
+function resetCustomForm() { $("customForm").reset(); $("cId").value = ""; $("cQuality").value = 85; $("cCancel").hidden = true; $("cErr").textContent = ""; }
+$("cCancel").addEventListener("click", resetCustomForm);
+$("cFormat").addEventListener("change", () => { $("cQuality").disabled = $("cFormat").value === "png" || !pro(); });
+$("customForm").addEventListener("submit", async e => {
+  e.preventDefault(); $("cErr").textContent = "";
+  const num = id => $(id).value === "" ? null : parseInt($(id).value, 10);
+  const body = {id: $("cId").value || null, name: $("cName").value.trim(), width: num("cWidth"), height: num("cHeight"), format: $("cFormat").value, quality: num("cQuality"), max_kb: num("cMax")};
+  if (body.height && !body.width) { $("cErr").textContent = "A height needs a width too."; return; }
+  try {
+    let saved;
+    if (MODE === "server") saved = await api("/api/custom-presets", body);
+    else {   // the preview keeps them until you reload
+      const id = body.id || "my-" + (slugify(body.name, 30) || "preset") + (PRESETS.some(p => p.id === "my-" + slugify(body.name, 30)) ? "-" + Date.now() % 1000 : "");
+      saved = {id, group: "My presets", name: body.name, width: body.width, height: body.width ? body.height : null, format: body.format, quality: body.format === "png" ? null : body.quality || 85, max_bytes: body.max_kb ? body.max_kb * 1000 : null, basis: "Your preset", slug: slugify(body.name, 40), custom: true};
+    }
+    forgetCrops(saved.id);   // an edited shape makes any placed crop for it wrong
+    PRESETS = PRESETS.filter(p => p.id !== saved.id).concat(saved);
+    toast(body.id ? "Preset updated" : `${saved.name} added to your destinations`);
+    resetCustomForm(); renderDests(); drawCrops();
+  } catch (err) { $("cErr").textContent = err.message; }
+});
+$("customList").addEventListener("click", async e => {
+  const ed = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]");
+  if (ed) {
+    const p = presetById(ed.dataset.edit);
+    $("cId").value = p.id; $("cName").value = p.name; $("cWidth").value = p.width || ""; $("cHeight").value = p.height || "";
+    $("cFormat").value = p.format; $("cQuality").value = p.quality || 85; $("cMax").value = p.max_bytes ? p.max_bytes / 1000 : ""; $("cCancel").hidden = false;
+    $("cName").focus();
+  } else if (del) {
+    try {
+      if (MODE === "server") await api(`/api/custom-presets/${encodeURIComponent(del.dataset.del)}`, null, "DELETE");
+      PRESETS = PRESETS.filter(p => p.id !== del.dataset.del); selected.delete(del.dataset.del); forgetCrops(del.dataset.del);
+      renderDests(); drawCrops();
+    } catch (err) { toast(err.message); }
+  }
+});
+
+/* ---------- settings ---------- */
+function renderSettings() {
+  const server = MODE === "server", s = STATE.settings || {};
+  $("settingsSub").textContent = server ? "Where exports are saved, your license, and preset updates." : "These settings work in the Mac app. The preview shows what they look like.";
+  $("folderPath").textContent = server ? tilde(STATE.export_folder) : "~/Desktop/Aptus Exports";
+  $("folderMac").hidden = server && !STATE.mac;
+  $("folderForm").hidden = !(server && !STATE.mac);
+  $("folderInput").value = s.export_folder || "";
+  ["chooseFolder","revealFolder","resetFolder","checkNow","autoUpdate"].forEach(id => $(id).disabled = !server);
+  $("autoUpdate").checked = s.check_updates !== false;
+  const L = STATE.license;
+  $("licDot").classList.toggle("on", !!L.pro);
+  $("licStatus").textContent = L.pro ? "Pro is on" : "Free";
+  $("licText").textContent = {
+    preview: "The preview shows every Pro feature so you can try them.",
+    developer: "Running from source, so Pro features are on for testing. The signed app checks a real license.",
+    forced: "Pro is set by the APTUS_PRO setting for testing.",
+    license: `Licensed${L.email ? " to " + L.email : ""}. Thanks for supporting GreenLaunch.`,
+    free: "Free exports one file to one destination at a time. Pro adds batches, several destinations at once, your own presets, interval grabs and contact sheets.",
+  }[L.source] || "";
+  $("licForm").hidden = !(server && L.source === "free" && L.configured);
+  $("licDeactivate").hidden = !(server && L.source === "license");
+  if (server && L.source === "free" && !L.configured) $("licText").textContent += " Licensing isn't set up in this build yet.";
+  $("updText").textContent = `Platform sizes change. When Aptus opens, it checks for an updated preset list and keeps the current one if anything looks wrong. Current list: version ${STATE.presets_version}.`;
+  $("versionNote").textContent = server ? `Aptus ${STATE.version || ""}` : "Browser preview";
+}
+async function refreshState() {
+  if (MODE !== "server") return;
+  STATE = await api("/api/state"); LIMITS = STATE.limits || LIMITS;
+  renderSettings(); renderDests();
+}
+async function saveSettings(patch) { STATE = await api("/api/settings", patch); renderSettings(); renderDests(); }
+$("chooseFolder").addEventListener("click", async () => {
+  try { const d = await api("/api/choose-folder", {}); if (!d.cancelled) { STATE = d; renderSettings(); renderDests(); toast("Exports will save there"); } } catch (e) { toast(e.message); }
+});
+$("revealFolder").addEventListener("click", async () => { try { await api("/api/reveal", {}); } catch (e) { toast(e.message); } });
+$("resetFolder").addEventListener("click", async () => { try { await saveSettings({export_folder: ""}); toast("Back to Desktop › Aptus Exports"); } catch (e) { toast(e.message); } });
+$("folderForm").addEventListener("submit", async e => { e.preventDefault(); try { await saveSettings({export_folder: $("folderInput").value}); toast("Export folder saved"); } catch (err) { toast(err.message); } });
+$("autoUpdate").addEventListener("change", () => saveSettings({check_updates: $("autoUpdate").checked}).catch(e => toast(e.message)));
+$("checkNow").addEventListener("click", async () => {
+  try {
+    const d = await api("/api/presets/update", {});
+    toast(d.status === "updated" ? `Presets updated to version ${d.presets_version}` : d.status === "current" ? "Presets are up to date" : "Couldn't check right now. Your presets are unchanged.");
+    if (d.status === "updated") { PRESETS = await api("/api/presets"); await refreshState(); drawCrops(); }
+  } catch (e) { toast(e.message); }
+});
+$("licForm").addEventListener("submit", async e => {
+  e.preventDefault(); $("licErr").textContent = "";
+  try { const d = await api("/api/license/activate", {key: $("licKey").value}); toast(d.message); await refreshState(); }
+  catch (err) { $("licErr").textContent = err.message; }
+});
+$("licDeactivate").addEventListener("click", async () => {
+  try { const d = await api("/api/license/deactivate", {}); toast(d.message); await refreshState(); } catch (e) { toast(e.message); }
+});
+
+/* ---------- start ---------- */
+(async () => {
+  renderDests(); renderSettings();
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 1500);
+    const res = await fetch("/api/presets", {signal: ctl.signal});
+    const data = res.ok && (res.headers.get("content-type") || "").includes("json") ? await res.json() : null;
+    if (Array.isArray(data) && data.length) { PRESETS = data; MODE = "server"; }
+  } catch {}
+  if (MODE === "server") {
+    try {
+      await refreshState();
+      const s = STATE.settings || {};
+      const last = (s.last_presets || []).filter(id => presetById(id) && (pro() || !presetById(id).custom));
+      if (last.length) { selected.clear(); (pro() ? last : last.slice(0, 1)).forEach(id => selected.add(id)); }
+      const nm = s.naming || {};
+      $("nLocation").value = nm.location || ""; $("nDescriptor").value = nm.descriptor || ""; $("nClient").value = nm.client || ""; $("nShot").value = nm.shot || "";
+      $("nNumbered").checked = nm.numbered !== false;
+    } catch {}
+  }
+  if (!pro() && selected.size > 1) { const first = [...selected][0]; selected.clear(); selected.add(first); }
+  const tag = MODE === "server" ? (STATE.mac ? "Running on your Mac" : "Running locally") : "Browser preview";
+  $("modeTag").textContent = tag; $("modeTag2").textContent = tag;
+  renderDests(); renderSettings();
+  if (MODE === "browser") loadSample(true);   // the preview opens with a worked example
+})();
+</script>

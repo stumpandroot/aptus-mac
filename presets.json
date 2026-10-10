@@ -1,0 +1,163 @@
+{
+  "version": 2,
+  "updated": "2026-10-09",
+  "presets": [
+    {
+      "id": "web-hero",
+      "group": "Website",
+      "name": "Hero image",
+      "width": 2560,
+      "height": null,
+      "format": "webp",
+      "quality": 82,
+      "max_bytes": 1000000,
+      "basis": "Recommendation",
+      "slug": "hero"
+    },
+    {
+      "id": "web-content",
+      "group": "Website",
+      "name": "Content image",
+      "width": 1600,
+      "height": null,
+      "format": "webp",
+      "quality": 80,
+      "max_bytes": 500000,
+      "basis": "Recommendation",
+      "slug": "content"
+    },
+    {
+      "id": "web-set",
+      "group": "Website",
+      "name": "Responsive size set (640\u20132560)",
+      "width": null,
+      "height": null,
+      "format": "webp",
+      "quality": 80,
+      "max_bytes": 500000,
+      "basis": "One file per width for srcset",
+      "slug": "",
+      "widths": [
+        640,
+        1024,
+        1600,
+        2560
+      ]
+    },
+    {
+      "id": "web-og",
+      "group": "Website",
+      "name": "Link preview (Open Graph)",
+      "width": 1200,
+      "height": 627,
+      "format": "jpg",
+      "quality": 85,
+      "max_bytes": 1000000,
+      "basis": "LinkedIn link card size",
+      "slug": "og-image"
+    },
+    {
+      "id": "ig-feed",
+      "group": "Social",
+      "name": "Instagram feed (3:4)",
+      "width": 1080,
+      "height": 1440,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Matches the profile grid",
+      "slug": "instagram-3x4"
+    },
+    {
+      "id": "ig-feed-45",
+      "group": "Social",
+      "name": "Instagram feed, boostable (4:5)",
+      "width": 1080,
+      "height": 1350,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Safe for boosted posts",
+      "slug": "instagram-4x5"
+    },
+    {
+      "id": "ig-story",
+      "group": "Social",
+      "name": "Instagram story or Reel cover",
+      "width": 1080,
+      "height": 1920,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Platform spec",
+      "slug": "instagram-story"
+    },
+    {
+      "id": "li-square",
+      "group": "Social",
+      "name": "LinkedIn square",
+      "width": 1200,
+      "height": 1200,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Platform spec",
+      "slug": "linkedin-square"
+    },
+    {
+      "id": "li-landscape",
+      "group": "Social",
+      "name": "LinkedIn landscape",
+      "width": 1200,
+      "height": 627,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Platform spec",
+      "slug": "linkedin-landscape"
+    },
+    {
+      "id": "li-vertical",
+      "group": "Social",
+      "name": "LinkedIn vertical",
+      "width": 1200,
+      "height": 1500,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": null,
+      "basis": "Platform spec",
+      "slug": "linkedin-vertical"
+    },
+    {
+      "id": "yt-thumb",
+      "group": "Social",
+      "name": "YouTube thumbnail",
+      "width": 1280,
+      "height": 720,
+      "format": "jpg",
+      "quality": 90,
+      "max_bytes": 2000000,
+      "basis": "YouTube 2 MB limit",
+      "slug": "youtube-thumbnail"
+    },
+    {
+      "id": "portfolio",
+      "group": "Portfolio",
+      "name": "Portfolio still (full resolution)",
+      "width": null,
+      "height": null,
+      "format": "png",
+      "quality": null,
+      "max_bytes": null,
+      "basis": "Recommendation",
+      "slug": "portfolio"
+    }
+  ],
+  "limits": [
+    {
+      "id": "webflow-image",
+      "name": "Webflow image upload",
+      "max_bytes": 4000000
+    }
+  ]
+}

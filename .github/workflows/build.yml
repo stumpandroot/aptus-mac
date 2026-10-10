@@ -1,0 +1,119 @@
+name: Build Aptus
+
+# Every push to main builds two DMGs (Apple silicon and Intel). Running the workflow by hand
+# with a version number also makes a draft GitHub release with both DMGs attached.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, like 1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            label: apple-silicon
+          - runner: macos-15-intel
+            label: intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      FFMPEG_VERSION: "7.1.1"
+      HAS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r mac/requirements-mac.txt
+
+      - name: Reuse the ffmpeg build if nothing changed
+        uses: actions/cache@v4
+        with:
+          path: mac/vendor/ffmpeg
+          key: ffmpeg-${{ env.FFMPEG_VERSION }}-${{ matrix.label }}-${{ hashFiles('mac/build_ffmpeg.sh') }}
+
+      - name: Build LGPL ffmpeg
+        run: bash mac/build_ffmpeg.sh
+
+      - name: Run tests (with the same ffmpeg the app ships)
+        env:
+          APTUS_FFMPEG_DIR: ${{ github.workspace }}/mac/vendor/ffmpeg
+          APTUS_NO_UPDATE: "1"
+        run: |
+          export PATH="$APTUS_FFMPEG_DIR:$PATH"
+          python -m pytest -q
+
+      - name: Build the app
+        run: |
+          echo "$VERSION" > VERSION
+          pyinstaller --noconfirm --distpath dist --workpath build mac/Aptus.spec
+
+      - name: Check the built app
+        run: |
+          dist/Aptus.app/Contents/MacOS/Aptus --self-test
+          dist/Aptus.app/Contents/MacOS/Aptus --smoke-test
+
+      - name: Load the signing certificate
+        if: ${{ env.HAS_CERT == 'true' }}
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PWD="$(openssl rand -base64 24)"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Sign, package and notarize
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DMG_NAME: Aptus-${{ env.VERSION }}-${{ matrix.label }}.dmg
+        run: bash mac/sign_and_package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aptus-${{ env.VERSION }}-${{ matrix.label }}
+          path: dist/Aptus-${{ env.VERSION }}-${{ matrix.label }}.dmg
+
+  release:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dmgs
+          merge-multiple: true
+      - name: Make a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh release create "v$VERSION" dmgs/*.dmg --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Aptus $VERSION" --notes "Download the DMG for your Mac: apple-silicon for M-series Macs, intel for older Macs."

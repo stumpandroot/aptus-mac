@@ -1,0 +1,4 @@
+# Extra pieces for the Mac app build (on top of ../requirements.txt).
+pywebview==5.4
+pyinstaller==6.11.1
+certifi
