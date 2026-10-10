@@ -50,7 +50,10 @@ jobs:
           key: ffmpeg-${{ env.FFMPEG_VERSION }}-${{ matrix.label }}-${{ hashFiles('mac/build_ffmpeg.sh') }}
 
       - name: Build LGPL ffmpeg
-        run: bash mac/build_ffmpeg.sh
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          set -o pipefail
+          bash mac/build_ffmpeg.sh 2>&1 | tee "$RUNNER_TEMP/logs/1-ffmpeg.log"
 
       - name: Run tests (with the same ffmpeg the app ships)
         env:
@@ -58,17 +61,20 @@ jobs:
           APTUS_NO_UPDATE: "1"
         run: |
           export PATH="$APTUS_FFMPEG_DIR:$PATH"
-          python -m pytest -q
+          set -o pipefail
+          python -m pytest -q 2>&1 | tee "$RUNNER_TEMP/logs/2-tests.log"
 
       - name: Build the app
         run: |
           echo "$VERSION" > VERSION
-          pyinstaller --noconfirm --distpath dist --workpath build mac/Aptus.spec
+          set -o pipefail
+          pyinstaller --noconfirm --distpath dist --workpath build mac/Aptus.spec 2>&1 | tee "$RUNNER_TEMP/logs/3-app.log"
 
       - name: Check the built app
         run: |
-          dist/Aptus.app/Contents/MacOS/Aptus --self-test
-          dist/Aptus.app/Contents/MacOS/Aptus --smoke-test
+          set -o pipefail
+          dist/Aptus.app/Contents/MacOS/Aptus --self-test 2>&1 | tee "$RUNNER_TEMP/logs/4-checks.log"
+          dist/Aptus.app/Contents/MacOS/Aptus --smoke-test 2>&1 | tee -a "$RUNNER_TEMP/logs/4-checks.log"
 
       - name: Load the signing certificate
         if: ${{ env.HAS_CERT == 'true' }}
@@ -94,7 +100,25 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           DMG_NAME: Aptus-${{ env.VERSION }}-${{ matrix.label }}.dmg
-        run: bash mac/sign_and_package.sh
+        run: |
+          set -o pipefail
+          bash mac/sign_and_package.sh 2>&1 | tee "$RUNNER_TEMP/logs/5-package.log"
+
+      - name: Show the end of the failing log as error notes
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, os
+          logs = sorted(glob.glob(os.path.join(os.environ["RUNNER_TEMP"], "logs", "*.log")))
+          if not logs:
+              print("::error title=No log::The job failed before any logged step ran.")
+          else:
+              path = logs[-1]
+              lines = [l.rstrip() for l in open(path, errors="replace") if l.strip()][-90:]
+              for i in range(0, len(lines), 15):
+                  chunk = "%0A".join(l.replace("%", "%25").replace("\r", "") for l in lines[i:i + 15])
+                  print(f"::error title={os.path.basename(path)} part {i // 15 + 1}::{chunk}")
+          PY
 
       - uses: actions/upload-artifact@v4
         with:

@@ -23,6 +23,13 @@ if [ ! -d "ffmpeg-$VERSION" ]; then
 fi
 cd "ffmpeg-$VERSION"
 
+# Intel Macs need the nasm assembler for ffmpeg's fast x86 code. It's a build tool only; nothing ships.
+if [ "$(uname -m)" = "x86_64" ] && ! command -v nasm >/dev/null; then
+  if command -v brew >/dev/null; then brew install nasm; else echo "Install nasm first: brew install nasm" >&2; exit 1; fi
+fi
+
+# avdevice stays on: with autodetect off it holds only the virtual "lavfi" source the tests use
+# to make sample videos, and no camera or screen capture.
 # --disable-autodetect stops ffmpeg from quietly linking whatever happens to be installed
 # (Homebrew libraries would make the app fail on other Macs). zlib is turned back on because
 # the PNG encoder needs it; macOS ships zlib, so nothing extra is bundled.
@@ -31,7 +38,7 @@ cd "ffmpeg-$VERSION"
   --disable-gpl --disable-nonfree \
   --disable-autodetect --enable-zlib \
   --disable-network --disable-doc --disable-debug \
-  --disable-ffplay --disable-avdevice \
+  --disable-ffplay \
   --enable-static --disable-shared \
   --extra-cflags="-mmacosx-version-min=12.0" --extra-ldflags="-mmacosx-version-min=12.0"
 
