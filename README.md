@@ -55,7 +55,7 @@ The server enforces these limits, not just the interface.
 1. **Host the preset list.** Upload `presets.json` to `https://greenlaunch.co/aptus/presets.json` (or change `PRESETS_URL` in `app.py`). When platform sizes change, edit it and raise `version` by 1; apps pick it up the next time they open.
 2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs as Free with no way to activate.
 3. **Add the app icon.** Save the icon as `mac/Aptus.icns`. (To make one from a 1024-pixel PNG on a Mac: make an `Aptus.iconset` folder of the standard sizes with `sips`, then run `iconutil -c icns Aptus.iconset`.)
-4. **Set up signing.** Put this folder in its own GitHub repository (for example `stumpandroot/Aptus`) and add the same six secrets as Vectorize: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `MACOS_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`. The Vectorize README has the step-by-step for making each one.
+4. **Set up signing.** In the [stumpandroot/aptus-mac repository](https://github.com/stumpandroot/aptus-mac), go to **Settings > Secrets and variables > Actions** and add the same six secrets as Vectorize: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `MACOS_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`. The Vectorize README has the step-by-step for making each one.
 
 ## Build the app
 
