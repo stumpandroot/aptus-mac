@@ -246,3 +246,8 @@ def test_local_only_guard(client, monkeypatch):
     assert r.status_code == 303 and "aptus=secret-token" in r.headers["set-cookie"]
     c.cookies.set("aptus", "secret-token")
     assert c.get("/api/state").status_code == 200
+
+
+def test_slug_cuts_at_a_word_break():
+    assert slugify("timber frame barn restoration with original hand hewn beams", 40) == "timber-frame-barn-restoration-with"
+    assert slugify("a" * 50, 40) == "a" * 40   # one long word still gets cut

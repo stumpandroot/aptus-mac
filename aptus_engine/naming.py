@@ -17,7 +17,12 @@ def slugify(text: str, max_len: int = 60) -> str:
     text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
     text = text.replace("&", " and ").replace("'", "")
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-    return slug[:max_len].strip("-")
+    if len(slug) <= max_len:
+        return slug
+    cut = slug[:max_len]   # cut at a word break when there is one, never mid-word
+    if slug[max_len] != "-" and "-" in cut:
+        cut = cut.rsplit("-", 1)[0]
+    return cut.strip("-")
 
 
 @dataclass
