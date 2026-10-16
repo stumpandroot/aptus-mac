@@ -1592,8 +1592,8 @@ async function loadSample(thenExport) {
     const res = await fetch("static/sample.jpg");
     if (!res.ok) throw new Error();
     const blob = await res.blob();
-    // The camera in the barn doorway is the focal point.
-    await addFiles([new File([blob], "barn-studio.jpg", {type: "image/jpeg"})], {replace: true, opts: {name: "Sample · barn-studio.jpg", sample: true, focal: [.27, .55]}});
+    // Tim's scanned film portrait from Alaska; her face is the focal point.
+    await addFiles([new File([blob], "alaska-film-portrait.jpg", {type: "image/jpeg"})], {replace: true, opts: {name: "Sample · alaska-film-portrait.jpg", sample: true, focal: [.47, .4]}});
     if (thenExport) runExport();
   } catch { toast("The sample couldn't load. Drop in a photo of your own instead."); }
 }
