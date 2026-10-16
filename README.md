@@ -13,6 +13,7 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 | `greenlaunch_license.py` | The GreenLaunch license check (a copy of the one in the license service; keep them in sync) |
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
+| `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
 | `tests/` | 62 tests for the engine, the server, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
@@ -54,7 +55,7 @@ The server enforces these limits, not just the interface.
 
 1. **Host the preset list.** Upload `presets.json` to `https://greenlaunch.co/aptus/presets.json` (or change `PRESETS_URL` in `app.py`). When platform sizes change, edit it and raise `version` by 1; apps pick it up the next time they open.
 2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs as Free with no way to activate.
-3. **Add the app icon.** Save the icon as `mac/Aptus.icns`. (To make one from a 1024-pixel PNG on a Mac: make an `Aptus.iconset` folder of the standard sizes with `sips`, then run `iconutil -c icns Aptus.iconset`.)
+3. **Finish the app icon.** `mac/Aptus.icns` is an interim flat icon. Build the final one in Icon Composer 2 from the layers in `mac/icon/`, as described in `DESIGN.md`.
 4. **Set up signing.** In the [stumpandroot/aptus-mac repository](https://github.com/stumpandroot/aptus-mac), go to **Settings > Secrets and variables > Actions** and add the same six secrets as Vectorize: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `MACOS_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`. The Vectorize README has the step-by-step for making each one.
 
 ## Build the app

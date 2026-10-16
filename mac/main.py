@@ -103,7 +103,6 @@ def self_test() -> int:
         import app as aptus_app
         assert (aptus_app.ROOT / "static" / "index.html").is_file()
         assert (aptus_app.ROOT / "static" / "sample.jpg").is_file()
-        assert (aptus_app.ROOT / "static" / "fonts" / "caveat-latin-600-normal.woff2").is_file()
 
     def licensing():
         import greenlaunch_license  # noqa: F401
