@@ -142,7 +142,7 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 
 /* ---- pages ---- */
 .page{display:none;padding:30px 32px 48px}
-.page.active{display:block;animation:fade var(--calm) ease-out both}
+.page.active{display:block}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 .home{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:24px;align-items:start;max-width:1320px}
 .work{min-width:0;display:grid;gap:16px}
@@ -217,7 +217,7 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 .error:not(:empty)::before{content:"!";display:inline-grid;place-items:center;width:16px;height:16px;margin-right:6px;border-radius:50%;background:var(--system-red);color:#fff;font-size:11px;font-weight:700;vertical-align:-2px}
 
 /* ---- results ---- */
-.ready{background:var(--sage-wash);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:12px 18px 12px 12px;display:flex;align-items:center;gap:14px;animation:fade var(--calm) ease-out both}
+.ready{background:var(--sage-wash);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:12px 18px 12px 12px;display:flex;align-items:center;gap:14px}
 .ready .apti{width:68px;height:68px;flex:none}
 .ready .hand{color:var(--sage-text)}
 .ready h2{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
@@ -225,7 +225,7 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 .ready .grow{flex:1;min-width:0}
 .ready-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .results{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
-.result{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-md);box-shadow:var(--shadow-low);padding:10px;display:grid;gap:8px;align-content:start;min-width:0;animation:fade var(--calm) ease-out both}
+.result{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-md);box-shadow:var(--shadow-low);padding:10px;display:grid;gap:8px;align-content:start;min-width:0}
 .thumb{border-radius:8px;height:146px;display:grid;place-items:center;overflow:hidden;background:var(--bar);box-shadow:var(--well);cursor:zoom-in}
 .thumb img{max-width:100%;max-height:146px;display:block}
 .result-body{padding:0 2px 2px;display:grid;gap:5px}
@@ -392,6 +392,90 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
   .pressable.is-pressed{transform:none}
   .toast{transform:translate(-50%,0)}
 }
+
+/* ================= interaction and animation pass =================
+   Family motion tokens only: calm and card 300 ms, snappy 200 ms, touch 150 ms, press 100 ms.
+   Web rule: transform and opacity only (the `translate` and `scale` properties are used so they
+   compose with card tilt instead of overriding it). Keyboard actions stay instant. */
+.main{position:relative}
+/* pages slide in the direction you travel through the sidebar */
+.page.leaving{display:block;position:absolute;top:0;left:0;right:0;pointer-events:none}
+@keyframes page-in-up{from{opacity:0;translate:0 18px}}
+@keyframes page-in-down{from{opacity:0;translate:0 -18px}}
+@keyframes page-out-up{to{opacity:0;translate:0 -12px}}
+@keyframes page-out-down{to{opacity:0;translate:0 12px}}
+@keyframes fade-out{to{opacity:0}}
+.page.enter-up{animation:page-in-up var(--calm) var(--ease-out) backwards}
+.page.enter-down{animation:page-in-down var(--calm) var(--ease-out) backwards}
+.page.leave-up{animation:page-out-up 180ms ease-in forwards}
+.page.leave-down{animation:page-out-down 180ms ease-in forwards}
+/* one selection pill that slides between sidebar rows and tabs */
+.nav{position:relative}
+.nav-link{z-index:1}
+.nav-link.selected,.nav-link.selected:hover{background:transparent;box-shadow:none}
+.nav-link.selected::before{display:none}
+.nav-pill{position:absolute;left:0;right:0;top:0;height:36px;border-radius:var(--r-sm);background:var(--reader);box-shadow:inset 0 0 0 1px var(--hairline),var(--shadow-low);transition:transform var(--calm) var(--ease-out);pointer-events:none}
+.nav-pill::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--sage-text)}
+.tab-pill{display:none}
+@media (max-width:860px){
+  .tab{z-index:1}.tab.selected{background:transparent;box-shadow:none}
+  .tab-pill{display:block;position:absolute;top:5px;bottom:5px;left:0;border-radius:999px;background:var(--reader);box-shadow:inset 0 0 0 1px var(--hairline);transition:transform var(--calm) var(--ease-out);pointer-events:none}
+}
+.no-anim{transition:none!important}
+/* segmented control: the selected sheet slides */
+.seg{position:relative}
+.seg button{position:relative;z-index:1;transition:color var(--snappy) ease-out}
+.seg button.on{background:transparent}
+.seg-pill{position:absolute;top:3px;bottom:3px;left:0;border-radius:7px;background:#E9E3D6;transition:transform var(--snappy) var(--ease-out)}
+/* things arrive instead of popping */
+@keyframes rise-in{from{opacity:0;translate:0 8px}}
+@keyframes drop-in{from{opacity:0;translate:0 -6px}}
+@keyframes pop-in{from{opacity:0;scale:.92}}
+@keyframes check-in{from{opacity:0;scale:.5}}
+.result{animation:rise-in var(--calm) var(--ease-out) backwards;animation-delay:var(--d,0ms)}
+.ready{animation:drop-in var(--calm) var(--ease-out) backwards}
+.alt-box{animation:rise-in var(--calm) var(--ease-out) 80ms backwards}
+#loaded.enter,.sheet-out{animation:rise-in var(--calm) var(--ease-out) backwards}
+.tray-item.cm{transition:transform var(--card-t) var(--ease-out),box-shadow var(--card-t) var(--ease-out),border-color var(--card-t) var(--ease-out),translate var(--calm) var(--ease-out),opacity 150ms ease-out,scale 150ms ease-out}
+.tray-item.enter{animation:pop-in var(--snappy) var(--ease-out) backwards}
+.tray-item.leaving{opacity:0;scale:.9}
+.dest.just .box svg{animation:check-in var(--snappy) var(--ease-out) backwards}
+.fields-in{animation:rise-in var(--snappy) var(--ease-out) backwards}
+.fields-out{opacity:0;translate:0 -4px;transition:opacity 150ms ease-in,translate 150ms ease-in}
+#exportLabel{display:inline-block}
+/* and leave instead of vanishing */
+.menu.closing{opacity:0;translate:0 -3px;transition:opacity 120ms ease-in,translate 120ms ease-in}
+.lightbox.closing{opacity:0;transition:opacity 200ms ease-in}
+.drop.closing{opacity:0;transition:opacity 150ms ease-in}
+/* Apti reacts: looks at the pointer, perks up for a drop, nods when done, worries on an error */
+.apti .a-look{transition:transform var(--touch) ease-out}
+.apti .a-all{transition:transform var(--calm) var(--ease-out)}
+.apti .a-smile,.apti .a-flat{transition:opacity var(--snappy) ease-out}
+.apti .a-flat{opacity:0}
+.apti.receiving .a-all{transform:translateY(-4px)}
+.apti.receiving .a-tl{transform:translate(-7px,-7px)}.apti.receiving .a-tr{transform:translate(7px,-7px)}
+.apti.receiving .a-bl{transform:translate(-7px,7px)}.apti.receiving .a-br4{transform:translate(7px,7px)}
+.apti.oops .a-smile{opacity:0}.apti.oops .a-flat{opacity:1}
+.apti.oops .a-all{transform:translateY(2px)}
+.apti.oops .a-tl{transform:translateY(5px) rotate(-10deg)}.apti.oops .a-tr{transform:translateY(5px) rotate(10deg)}
+@keyframes nod{40%{transform:translateY(3px)}}
+@keyframes tap-tl{45%{transform:translate(6px,6px)}}@keyframes tap-tr{45%{transform:translate(-6px,6px)}}
+@keyframes tap-bl{45%{transform:translate(6px,-6px)}}@keyframes tap-br{45%{transform:translate(-6px,-6px)}}
+.apti.nod .a-all{animation:nod 420ms var(--ease-out)}
+.apti.nod .a-tl{animation:tap-tl 420ms var(--ease-out)}.apti.nod .a-tr{animation:tap-tr 420ms var(--ease-out)}
+.apti.nod .a-bl{animation:tap-bl 420ms var(--ease-out)}.apti.nod .a-br4{animation:tap-br 420ms var(--ease-out)}
+.ready.oops{background:var(--butter-wash)}
+.ready.oops .hand,.ready.oops .overline{color:var(--butter-text)}
+/* Reduce Motion: movement becomes crossfades; Apti holds still */
+@media (prefers-reduced-motion:reduce){
+  .page.enter-up,.page.enter-down,.result,.ready,.alt-box,#loaded.enter,.sheet-out,.tray-item.enter,.fields-in,.dest.just .box svg{animation-name:fade}
+  .page.leave-up,.page.leave-down{animation-name:fade-out}
+  .nav-pill,.tab-pill,.seg-pill{transition:none}
+  .tray-item.cm{transition:opacity 150ms ease-out}
+  .menu.closing,.fields-out{translate:none}
+  .apti *,.apti .a-all{transition:none!important}
+  .apti .a-look{transform:none!important}
+}
 </style>
 
 <!-- Family glyphs. Apti (sage body, persimmon and butter crop brackets) is drawn by the script below. -->
@@ -421,6 +505,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
       <span class="word" aria-hidden="true"><span style="--n:0">A</span><span style="--n:1">p</span><span style="--n:2">t</span><span style="--n:3">u</span><span style="--n:4">s</span></span>
     </div>
     <nav class="nav" aria-label="Sections">
+      <span class="nav-pill" aria-hidden="true"></span>
       <button class="nav-link pressable selected" data-view="home" id="nav-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
       <button class="nav-link pressable" data-view="presets" id="nav-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
       <button class="nav-link pressable" data-view="settings" id="nav-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
@@ -506,7 +591,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
 
           <div class="ready" id="ready" hidden>
             <span class="apti" id="readyApti" aria-hidden="true"></span>
-            <div class="grow"><span class="overline">Done</span><h2 id="readyTitle"></h2><p id="readyWhere"></p>
+            <div class="grow"><span class="overline" id="readyKicker">Done</span><h2 id="readyTitle"></h2><p id="readyWhere"></p>
               <div class="ready-actions" id="readyActions"></div></div>
           </div>
           <div class="alt-box" id="altBox" hidden>
@@ -639,6 +724,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
 </div>
 
 <nav class="tabbar glass" aria-label="Sections">
+  <span class="tab-pill" aria-hidden="true"></span>
   <button class="tab pressable selected" data-view="home" id="tab-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
   <button class="tab pressable" data-view="presets" id="tab-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
   <button class="tab pressable" data-view="settings" id="tab-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
@@ -646,7 +732,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
 
 <div class="drop" id="drop" hidden>
   <div class="drop-box">
-    <span class="apti cropping" aria-hidden="true"></span>
+    <span class="apti" id="dropApti" aria-hidden="true"></span>
     <strong id="dropTitle">Drop it here to start fitting</strong>
     <span>Photos, folders and videos all work</span>
   </div>
@@ -656,7 +742,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
   <div class="lb-bar">
     <strong id="lbTitle"></strong><span class="meta" id="lbMeta"></span>
     <span class="grow"></span>
-    <div class="seg" role="group" aria-label="Compare"><button id="lbAfter" class="on" type="button">Export</button><button id="lbBefore" type="button">Original</button></div>
+    <div class="seg" role="group" aria-label="Compare"><span class="seg-pill" aria-hidden="true"></span><button id="lbAfter" class="on" type="button">Export</button><button id="lbBefore" type="button">Original</button></div>
     <button class="lb-close" id="lbClose" type="button">Done</button>
   </div>
   <div class="lb-view" id="lbView"><img id="lbImg" alt=""></div>
@@ -704,8 +790,10 @@ let focal = [0.5, 0.5], t = 0;
 const selected = new Set(DEFAULT_ON);
 let objectUrls = [];
 
+const RM = matchMedia("(prefers-reduced-motion: reduce)");   // Reduce Motion, read live
+
 /* ---------- Apti ---------- */
-const APTI = `<svg viewBox="0 0 120 120"><g class="a-all"> <g class="a-body"><rect x="30" y="30" width="60" height="60" rx="16" style="fill:var(--sage)"/> <g class="a-eyes"><circle cx="49" cy="56" r="4.6" fill="#26352E"/><circle cx="71" cy="56" r="4.6" fill="#26352E"/></g> <path d="M51 67q9 8 18 0" fill="none" stroke="#26352E" stroke-width="3.6" stroke-linecap="round"/></g> <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"> <path class="a-br a-tl" d="M14 34V18h16" stroke="#FA6B47"/> <path class="a-br a-tr" d="M90 18h16v16" stroke="#F4C76B"/> <path class="a-br a-bl" d="M14 86v16h16" stroke="#F4C76B"/> <path class="a-br a-br4" d="M90 102h16V86" stroke="#FA6B47"/> </g> </g></svg>`;
+const APTI = `<svg viewBox="0 0 120 120"><g class="a-all"> <g class="a-body"><rect x="30" y="30" width="60" height="60" rx="16" style="fill:var(--sage)"/> <g class="a-eyes"><g class="a-look"><circle cx="49" cy="56" r="4.6" fill="#26352E"/><circle cx="71" cy="56" r="4.6" fill="#26352E"/></g></g> <path class="a-smile" d="M51 67q9 8 18 0" fill="none" stroke="#26352E" stroke-width="3.6" stroke-linecap="round"/><path class="a-flat" d="M52 69.5q8 -3 16 0" fill="none" stroke="#26352E" stroke-width="3.6" stroke-linecap="round"/></g> <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"> <path class="a-br a-tl" d="M14 34V18h16" stroke="#FA6B47"/> <path class="a-br a-tr" d="M90 18h16v16" stroke="#F4C76B"/> <path class="a-br a-bl" d="M14 86v16h16" stroke="#F4C76B"/> <path class="a-br a-br4" d="M90 102h16V86" stroke="#FA6B47"/> </g> </g></svg>`;
 document.querySelectorAll('.apti').forEach(el => el.innerHTML = APTI);
 
 /* ---------- small interactions ---------- */
@@ -714,12 +802,47 @@ document.addEventListener("pointerdown", e => { const b = e.target.closest(".pre
 const release = () => document.querySelectorAll(".is-pressed").forEach(b => { b.classList.remove("is-pressed"); void b.offsetWidth; b.classList.add("vb-release"); setTimeout(() => b.classList.remove("vb-release"), 650); });
 document.addEventListener("pointerup", release); document.addEventListener("pointercancel", release);
 
-function show(view) {
-  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + view));
-  document.querySelectorAll(".nav-link[data-view], .tab[data-view]").forEach(b => b.classList.toggle("selected", b.dataset.view === view));
+/* Pages slide in the direction you travel: down the sidebar slides up, back slides down.
+   Keyboard shortcuts switch instantly (the family rule for keyboard-initiated actions). */
+const VIEWS = ["home", "presets", "settings"];
+let curView = "home";
+function movePills(instant) {
+  const link = document.querySelector(`.nav-link[data-view="${curView}"]`), pill = document.querySelector(".nav-pill");
+  if (link && pill && link.offsetParent) {
+    pill.classList.toggle("no-anim", !!instant);
+    pill.style.height = link.offsetHeight + "px"; pill.style.transform = `translateY(${link.offsetTop}px)`;
+  }
+  const tab = document.querySelector(`.tab[data-view="${curView}"]`), tp = document.querySelector(".tab-pill");
+  if (tab && tp && tab.offsetParent) {
+    tp.classList.toggle("no-anim", !!instant);
+    tp.style.width = tab.offsetWidth + "px"; tp.style.transform = `translateX(${tab.offsetLeft}px)`;
+  }
+  if (instant) requestAnimationFrame(() => document.querySelectorAll(".nav-pill,.tab-pill").forEach(p => p.classList.remove("no-anim")));
+}
+function show(view, {instant = false} = {}) {
+  document.querySelectorAll(".nav-link[data-view], .tab[data-view]").forEach(b => {
+    b.classList.toggle("selected", b.dataset.view === view);
+    if (b.dataset.view === view) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  if (typeof closeMenu === "function") closeMenu(true);
+  if (view === curView) { scrollTo({top: 0}); return; }
+  const from = $("page-" + curView), to = $("page-" + view);
+  const dir = VIEWS.indexOf(view) > VIEWS.indexOf(curView) ? "up" : "down";
+  curView = view; movePills(instant);
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("enter-up", "enter-down", "leave-up", "leave-down", "leaving"));
+  clearTimeout(show.t1); clearTimeout(show.t2);
+  from.classList.remove("active");
+  if (!instant) {
+    from.classList.add("leaving", "leave-" + dir);
+    show.t1 = setTimeout(() => from.classList.remove("leaving", "leave-up", "leave-down"), 200);
+    to.classList.add("enter-" + dir);
+    show.t2 = setTimeout(() => to.classList.remove("enter-up", "enter-down"), 340);
+  }
+  to.classList.add("active");
   scrollTo({top: 0});
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-view]"); if (b) show(b.dataset.view); });
+addEventListener("resize", () => movePills(true));
 
 async function api(path, body, method) {
   const init = body instanceof FormData ? {method: "POST", body} : body ? {method: method || "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: method || "GET"};
@@ -766,8 +889,11 @@ function renderNamePreview() {
   $("namePreview").textContent = fileName(stemOf(item ? item.name : "photo"), p.slug, p.format, n, startNumber(), extra);
 }
 $("namingToggle").addEventListener("click", () => {
-  const open = $("namingFields").hidden; $("namingFields").hidden = !open; $("namingToggle").setAttribute("aria-expanded", open);
-  $("namingToggle").textContent = open ? "Hide" : "SEO names";
+  const f = $("namingFields"), open = f.hidden;
+  $("namingToggle").setAttribute("aria-expanded", open); $("namingToggle").textContent = open ? "Hide" : "SEO names";
+  clearTimeout(f.t); f.classList.remove("fields-in", "fields-out");
+  if (open) { f.hidden = false; void f.offsetWidth; f.classList.add("fields-in"); f.t = setTimeout(() => f.classList.remove("fields-in"), 220); }
+  else { f.classList.add("fields-out"); f.t = setTimeout(() => { f.hidden = true; f.classList.remove("fields-out"); }, 150); }
 });
 ["nLocation","nDescriptor","nClient","nShot","nNumbered","nStart"].forEach(id => $(id).addEventListener("input", renderNamePreview));
 
@@ -779,6 +905,31 @@ function fileCount() {
   return [...selected].reduce((n, id) => { const p = presetById(id); return n + (p && p.widths ? p.widths.length : p ? 1 : 0); }, 0);
 }
 function batchSize() { return pro() ? queue.length : Math.min(queue.length, 1); }
+function exportLabelText() {
+  const files = fileCount() * Math.max(batchSize(), 1), photos = batchSize();
+  return !selected.size ? "Pick a destination"
+    : photos > 1 ? `Export ${files} files from ${photos} ${queue.every(q => q.kind === "image") ? "photos" : queue.every(q => q.kind === "video") ? "videos" : "files"}`
+    : `Export ${files} ${files === 1 ? "file" : "files"}`;
+}
+/* Text morph for state ("Export 4 files" → "Fitting…" → "Saved 4 files"): the old words lift out, the new ones rise in. */
+let labelHold = 0, morphId = 0;
+function morphLabel(text, hold = 0) {
+  const el = $("exportLabel"), id = ++morphId;
+  labelHold = hold ? Date.now() + hold : 0;
+  if (el.textContent === text) return;
+  if (RM.matches || !el.animate) { el.textContent = text; return; }
+  el.getAnimations().forEach(a => a.cancel());
+  const out = el.animate([{opacity: 1, transform: "none"}, {opacity: 0, transform: "translateY(-5px)"}], {duration: 100, easing: "ease-in", fill: "forwards"});
+  out.onfinish = () => {
+    if (id !== morphId) return;
+    el.textContent = text; out.cancel();
+    el.animate([{opacity: 0, transform: "translateY(5px)"}, {opacity: 1, transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
+  };
+}
+function holdThenRestore(ms) {
+  clearTimeout(holdThenRestore.t);
+  holdThenRestore.t = setTimeout(() => { if (!exporting) { labelHold = 0; morphLabel(exportLabelText()); } }, ms);
+}
 function renderDests() {
   for (const id of [...selected]) if (!presetById(id)) selected.delete(id);
   const groups = {}; PRESETS.forEach(p => (groups[p.group] ||= []).push(p));
@@ -795,10 +946,7 @@ function renderDests() {
         <span class="swatch" style="${ci >= 0 ? `background:${CROP_COLORS[ci % CROP_COLORS.length]}` : ""}" title="${ci >= 0 ? "Crop outline color" : ""}"></span>
       </label>`;
     }).join("") + `</div>`).join("");
-  const files = fileCount() * Math.max(batchSize(), 1), photos = batchSize();
-  $("exportLabel").textContent = !selected.size ? "Pick a destination"
-    : photos > 1 ? `Export ${files} files from ${photos} ${queue.every(q => q.kind === "image") ? "photos" : queue.every(q => q.kind === "video") ? "videos" : "files"}`
-    : `Export ${files} ${files === 1 ? "file" : "files"}`;
+  if (!exporting && Date.now() >= labelHold) $("exportLabel").textContent = exportLabelText();
   $("exportBtn").disabled = !selected.size || !media || exporting;
   $("exportNote").textContent = MODE === "server" ? `Saves to ${tilde(STATE.export_folder || "~/Desktop/Aptus Exports")}` : "Results appear below. Right-click one to save it.";
   $("freeNote").hidden = pro();
@@ -812,9 +960,18 @@ $("dests").addEventListener("change", e => {
     if (!pro() && selected.size) { selected.clear(); toast("Free exports one destination at a time. Pro exports to all of them at once."); }
     selected.add(id); if (isCrop(presetById(id))) active = id;
   } else selected.delete(id);
-  renderDests(); drawCrops();
+  renderDests(); drawCrops({animate: true});
+  const row = e.target.checked && $("d-" + id); if (row) row.closest(".dest").classList.add("just");   // the check draws in
 });
 $("clearBtn").addEventListener("click", () => { selected.clear(); renderDests(); drawCrops(); });
+/* Hovering a destination brings its crop frame forward on the photo */
+let hoverDest = null;
+$("dests").addEventListener("pointerover", e => {
+  const row = e.target.closest(".dest"), id = row && row.querySelector("input").value;
+  const next = id && selected.has(id) && isCrop(presetById(id)) ? id : null;
+  if (next !== hoverDest) { hoverDest = next; if (!tweenRaf) drawCrops(); }
+});
+$("dests").addEventListener("pointerleave", () => { if (hoverDest) { hoverDest = null; if (!tweenRaf) drawCrops(); } });
 
 /* ---------- crop math (same as the engine's focal_crop_box) ---------- */
 function cropBox(w, h, aspect, [fx, fy]) {
@@ -834,22 +991,43 @@ function frameFor(id) {
 }
 function ensureActive() { const ids = cropOrder(); if (!ids.includes(active)) active = ids[0] || null; }
 
-function drawCrops() {
+/* Crop frames glide to a new spot when you tap the subject, reset a crop, or add a destination.
+   Dragging a frame and arrow-key nudges draw instantly. */
+let shownBoxes = {}, shownFocal = null, tweenRaf = 0;
+function drawCrops(opts = {}) {
   if (!media) return;
   ensureActive();
-  const w = media.width, h = media.height, svg = $("marks"), u = Math.max(w, h) / 320;
+  const ids = cropOrder(), target = {}, f = focal.slice();
+  ids.forEach(id => target[id] = frameFor(id));
+  cancelAnimationFrame(tweenRaf); tweenRaf = 0;
+  if (opts.animate && !RM.matches && shownFocal) {
+    const from = shownBoxes, ff = shownFocal, t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 300), e = 1 - Math.pow(1 - k, 3), mix = (a, b) => a + (b - a) * e;
+      const boxes = {};
+      for (const id of ids) boxes[id] = from[id] ? target[id].map((v, i) => Math.round(mix(from[id][i], v))) : target[id];
+      paintCrops(ids, boxes, [mix(ff[0], f[0]), mix(ff[1], f[1])]);
+      tweenRaf = k < 1 ? requestAnimationFrame(step) : 0;
+    };
+    tweenRaf = requestAnimationFrame(step);
+  } else paintCrops(ids, target, f);
+  updateFrameNote();
+}
+function paintCrops(ids, boxes, focalPt) {
+  shownBoxes = boxes; shownFocal = focalPt;
+  const w = media.width, h = media.height, svg = $("marks"), u = Math.max(w, h) / 320, frameFor = id => boxes[id], focal = focalPt;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  const ids = cropOrder(), colorOf = id => CROP_COLORS[ids.indexOf(id) % CROP_COLORS.length];
+  const colorOf = id => CROP_COLORS[ids.indexOf(id) % CROP_COLORS.length];
   let out = "";
   if (active) {   // dim everything outside the active frame
     const [x, y, cw, ch] = frameFor(active);
     out += `<path d="M0 0H${w}V${h}H0Z M${x} ${y}V${y + ch}H${x + cw}V${y}Z" fill="#26352E" fill-opacity=".4" fill-rule="evenodd" pointer-events="none"/>`;
   }
   for (const id of [...ids.filter(i => i !== active), ...(active ? [active] : [])]) {
-    const [x, y, cw, ch] = frameFor(id), on = id === active, c = colorOf(id);
+    const [x, y, cw, ch] = frameFor(id), on = id === active, c = colorOf(id), hot = id === hoverDest && !on;
     out += `<g data-id="${id}">
       <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="${u * (on ? 3.4 : 2.4)}" pointer-events="none"/>
-      <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="${c}" stroke-width="${u * (on ? 1.8 : 1.1)}" ${on ? "" : `stroke-dasharray="${u * 4} ${u * 3}"`} pointer-events="none"/>
+      <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="${c}" stroke-width="${u * (on ? 1.8 : hot ? 2.2 : 1.1)}" ${on || hot ? "" : `stroke-dasharray="${u * 4} ${u * 3}"`} pointer-events="none"/>
       <rect class="hit" x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${on ? "#000" : "none"}" fill-opacity="0" stroke="#000" stroke-opacity="0" stroke-width="${u * 9}" pointer-events="${on ? "all" : "stroke"}" style="cursor:${on ? "move" : "pointer"}"/>`;
     if (on) {
       const p = presetById(id), small = cw < p.width || ch < p.height;
@@ -866,7 +1044,6 @@ function drawCrops() {
   out += `<circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r * 1.9}" fill="#fff" fill-opacity=".35" pointer-events="none"/>
     <circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r}" fill="#FA6B47" stroke="#fff" stroke-width="${r / 2.5}" pointer-events="none"/>`;
   svg.innerHTML = out;
-  updateFrameNote();
 }
 
 function updateFrameNote() {
@@ -876,7 +1053,7 @@ function updateFrameNote() {
   note.innerHTML = `<span>Editing <b>${esc(p.name)}</b>. Drag the frame to move it and a corner to crop tighter.${small ? ` <span class="warn-inline">This area is ${cw}×${ch}, smaller than ${p.width}×${p.height}, so it will be enlarged.</span>` : ""}</span>
     ${custom[active] ? `<button class="chip pressable" id="resetFrame" type="button"><span class="inner">Reset this crop</span></button>` : ""}`;
 }
-document.addEventListener("click", e => { if (e.target.closest("#resetFrame")) { delete custom[active]; drawCrops(); renderDests(); } });
+document.addEventListener("click", e => { if (e.target.closest("#resetFrame")) { delete custom[active]; drawCrops({animate: true}); renderDests(); } });
 
 /* pointer handling: move, resize, select, or set the focal point */
 let drag = null;
@@ -916,7 +1093,7 @@ const endDrag = () => {
   if (!drag) return;
   if (!drag.moved && drag.kind !== "resize") {   // a tap, not a drag: set the focal point
     focal = [Math.min(Math.max(drag.sx / media.width, 0), 1), Math.min(Math.max(drag.sy / media.height, 0), 1)];
-    drawCrops();
+    drawCrops({animate: true});
   } else renderDests();
   drag = null; stash();
 };
@@ -943,10 +1120,13 @@ function renderTray() {
   if (!many) return;
   $("batchPro").hidden = pro();
   $("trayCount").textContent = pro() ? `${queue.length} files in this batch` : `${queue.length} files · Free exports the one selected`;
-  $("tray").innerHTML = queue.map((it, i) => `<div class="tray-item cm ${i === cur ? "current" : ""} ${it.done ? "done" : ""}" data-tilt="2" role="option" aria-selected="${i === cur}" tabindex="0" data-i="${i}" title="${esc(it.name)}">
+  queue.forEach(it => it.uid ||= ++uidSeq);
+  $("tray").innerHTML = queue.map((it, i) => `<div class="tray-item cm ${i === cur ? "current" : ""} ${it.done ? "done" : ""} ${it.shown ? "" : "enter"}" data-uid="${it.uid}" data-tilt="2" role="option" aria-selected="${i === cur}" tabindex="0" data-i="${i}" title="${esc(it.name)}">
       ${it.thumb ? `<img src="${it.thumb}" alt="">` : `<svg class="i"><use href="#${it.kind === "video" ? "i-film" : "i-frame"}"/></svg>`}
       <span class="n">${i + 1}</span><button class="x" type="button" data-remove="${i}" aria-label="Remove ${esc(it.name)}">×</button></div>`).join("");
+  queue.forEach(it => it.shown = true);
 }
+let uidSeq = 0, removing = false;
 $("tray").addEventListener("click", e => {
   if (exporting) { toast("Wait for the export to finish."); return; }
   const rm = e.target.closest("[data-remove]");
@@ -955,9 +1135,23 @@ $("tray").addEventListener("click", e => {
 });
 $("tray").addEventListener("keydown", e => { if (exporting) return; const el = e.target.closest("[data-i]"); if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectItem(+el.dataset.i); } });
 function removeItem(i) {
-  stash(); queue.splice(i, 1);
-  if (!queue.length) { cur = -1; media = null; $("loaded").hidden = true; $("empty").hidden = false; renderDests(); return; }
-  const next = Math.min(i <= cur ? Math.max(cur - 1, 0) : cur, queue.length - 1); cur = -1; selectItem(next);
+  if (removing) return;
+  const tray = $("tray"), tiles = [...tray.children], gone = tiles[i];
+  const before = new Map(tiles.map(el => [el.dataset.uid, el.getBoundingClientRect().left]));
+  const finish = () => {
+    removing = false;
+    stash(); queue.splice(i, 1);
+    if (!queue.length) { cur = -1; media = null; $("loaded").hidden = true; $("empty").hidden = false; renderDests(); return; }
+    const next = Math.min(i <= cur ? Math.max(cur - 1, 0) : cur, queue.length - 1); cur = -1; selectItem(next);
+    if (RM.matches) return;
+    for (const el of tray.children) {   // FLIP: the remaining tiles slide into the gap
+      const old = before.get(el.dataset.uid), dx = old == null ? 0 : old - el.getBoundingClientRect().left;
+      if (!dx) continue;
+      el.style.transition = "none"; el.style.translate = `${dx}px 0`; void el.offsetWidth;
+      el.style.transition = ""; el.style.translate = "0 0";
+    }
+  };
+  if (gone && !RM.matches) { removing = true; gone.classList.add("leaving"); setTimeout(finish, 150); } else finish();
 }
 
 const kindOf = f => (f.type || "").startsWith("video/") || VIDEO_EXT.test(f.name) ? "video" : (f.type || "").startsWith("image/") || IMAGE_EXT.test(f.name) ? "image" : null;
@@ -1014,7 +1208,9 @@ async function selectItem(i) {   // shows file i; returns false if it couldn't b
 }
 function setLoaded(info, previewSrc) {
   media = info;
+  const first = $("loaded").hidden;
   $("empty").hidden = true; $("loaded").hidden = false;
+  if (first) { $("loaded").classList.add("enter"); setTimeout(() => $("loaded").classList.remove("enter"), 340); }
   $("fileName").textContent = info.name;
   $("dims").textContent = `${info.width}×${info.height}` + (info.duration ? ` · ${info.duration.toFixed(1)} s` : "");
   $("sampleTag").hidden = !info.sample;
@@ -1022,9 +1218,10 @@ function setLoaded(info, previewSrc) {
   $("video").hidden = info.kind !== "video";
   $("intervalRow").hidden = MODE !== "server";
   $("preview").src = previewSrc;
+  shownFocal = null;   // a new picture: frames appear in place, no glide from the last one
   renderDests(); drawCrops();
 }
-function clearResults() { $("results").innerHTML = ""; $("ready").hidden = true; $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
+function clearResults() { $("results").innerHTML = ""; $("ready").hidden = true; $("ready").classList.remove("oops"); $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
 $("file").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files, {replace: true}); e.target.value = ""; });
 $("addFile").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files); e.target.value = ""; });
 
@@ -1169,7 +1366,7 @@ async function exportInBrowser(p, item, number, n) {
 let RESULTS = [];
 function addResult(r) {
   const i = RESULTS.push(r) - 1, finder = MODE === "server" && STATE.mac;
-  $("results").insertAdjacentHTML("beforeend", `<article class="result cm" data-tilt="4">
+  $("results").insertAdjacentHTML("beforeend", `<article class="result cm" data-tilt="4" style="--d:${Math.min(i, 8) * 40}ms">
     <div class="thumb" data-zoom="${i}" title="Check at 100%"><img src="${r.url}" alt="${esc(r.preset)} result" loading="lazy"></div>
     <div class="result-body"><h3>${esc(r.preset)}</h3>
       <div class="meta" style="overflow-wrap:anywhere">${esc(r.file)}</div>
@@ -1182,18 +1379,33 @@ function addResult(r) {
 $("results").addEventListener("click", async e => {
   const z = e.target.closest("[data-zoom]"), q = e.target.closest("[data-ql]"), rv = e.target.closest("[data-reveal]");
   try {
-    if (z) openZoom(RESULTS[+z.dataset.zoom]);
+    if (z) openZoom(RESULTS[+z.dataset.zoom], z.closest(".result") && z.closest(".result").querySelector(".thumb img"));
     else if (q) await api("/api/quicklook", {file: RESULTS[+q.dataset.ql].file});
     else if (rv) await api("/api/reveal", {file: RESULTS[+rv.dataset.reveal].file});
   } catch (err) { toast(err.message); }
 });
 let celebrated = false;
+function aptiState(el, state, ms) {
+  if (!el) return;
+  el.classList.remove("receiving", "oops", "nod");
+  if (!state) return;
+  void el.getBoundingClientRect(); el.classList.add(state);
+  if (ms) { clearTimeout(el.t); el.t = setTimeout(() => el.classList.remove(state), ms); }
+}
+function showOops(msg) {
+  const r = $("ready"); r.hidden = false; r.classList.add("oops");
+  $("readyKicker").textContent = "Stopped"; $("readyTitle").textContent = "The export didn't finish";
+  $("readyWhere").textContent = msg; $("readyActions").innerHTML = ""; $("altBox").hidden = true;
+  $("readyApti").classList.remove("cheer"); aptiState($("readyApti"), "oops");
+}
 function celebrate(n, where, alt) {
   $("readyTitle").textContent = `${n} ${n === 1 ? "file" : "files"} ready`;
   $("readyWhere").textContent = where;
   $("readyActions").innerHTML = MODE === "server" && STATE.mac ? `<button class="mini pressable" id="openFolder" type="button"><span class="inner"><svg class="i" style="width:15px;height:15px"><use href="#i-folder"/></svg>Show in Finder</span></button>` : "";
-  const a = $("readyApti"); $("ready").hidden = false; a.classList.remove("cheer");
+  const a = $("readyApti"); $("ready").hidden = false; $("ready").classList.remove("oops"); $("readyKicker").textContent = "Done";
+  a.classList.remove("cheer"); aptiState(a, null);
   if (!celebrated) { celebrated = true; void a.offsetWidth; a.classList.add("cheer"); }   // the one celebrate moment: first export of a session
+  else aptiState(a, "nod", 450);   // later exports get a small nod, not a party
   $("altBox").hidden = !alt; $("altText").textContent = alt || "";
 }
 document.addEventListener("click", async e => { if (e.target.closest("#openFolder")) { try { await api("/api/reveal", {}); } catch (err) { toast(err.message); } } });
@@ -1202,7 +1414,7 @@ $("copyAlt").addEventListener("click", async () => { try { await navigator.clipb
 let exporting = false;
 function working(on) {
   exporting = on; $("workApti").hidden = !on; $("exportBtn").disabled = on || !selected.size || !media;
-  if (on) $("exportLabel").textContent = "Fitting…";
+  if (on) morphLabel("Fitting…");
 }
 async function runExport() {
   if (!media || !selected.size || exporting) return;
@@ -1216,7 +1428,7 @@ async function runExport() {
   try {
     for (const [k, it] of items.entries()) {
       const number = start + k;
-      if (batch) $("exportLabel").textContent = `Fitting ${k + 1} of ${items.length}…`;
+      if (batch) morphLabel(`Fitting ${k + 1} of ${items.length}…`);
       if (MODE === "server") {
         const info = await ensureUploaded(it), w = info.width, h = info.height;
         const d = await api("/api/export", {id: info.id, presets: list.map(p => p.id), focal: it.focal, t: it.t, boxes: fractionsOf(it.custom, w, h), naming: n, number, batch});
@@ -1235,8 +1447,9 @@ async function runExport() {
     if (failed.length) $("err").textContent = `Skipped ${failed.length === 1 ? "a file" : failed.length + " files"} this browser couldn't open: ${failed.join(", ")}`;
     if (!pro() && queue.length > 1) toast("Free exported the selected file. Pro exports the whole batch.");
     celebrate(count, MODE === "server" ? `Saved to ${tilde(folder)}` : "Right-click any result to save it. The Mac app saves to a folder.", altText(n));
+    morphLabel(`✓ ${MODE === "server" ? "Saved" : "Made"} ${count} ${count === 1 ? "file" : "files"}`, 1800); holdThenRestore(1800);
     if (MODE === "server") STATE.settings.last_presets = list.map(p => p.id);
-  } catch (e) { $("err").textContent = e.message; }
+  } catch (e) { $("err").textContent = e.message; showOops(e.message); morphLabel("Export stopped", 1800); holdThenRestore(1800); }
   working(false);
   if (MODE === "browser" && queue[cur] !== keepItem && queue.includes(keepItem)) await selectItem(queue.indexOf(keepItem));
   renderDests();
@@ -1245,12 +1458,30 @@ $("exportBtn").addEventListener("click", runExport);
 
 /* ---------- check at 100%: the export next to a lossless render of the same crop ---------- */
 let zoom = null;
-async function openZoom(r) {
-  zoom = {r, before: null, showing: "after"};
+function moveSeg(instant) {
+  const on = $("lb").querySelector(".seg button.on"), pill = $("lb").querySelector(".seg-pill");
+  if (!on || !pill) return;
+  pill.classList.toggle("no-anim", !!instant);
+  pill.style.width = on.offsetWidth + "px"; pill.style.transform = `translateX(${on.offsetLeft}px)`;
+  if (instant) requestAnimationFrame(() => pill.classList.remove("no-anim"));
+}
+async function openZoom(r, fromImg) {
+  const lb = $("lb"), img = $("lbImg");
+  clearTimeout(closeZoom.t); lb.classList.remove("closing"); img.getAnimations().forEach(a => a.cancel());
+  zoom = {r, before: null, showing: "after", fromImg};
   $("lbTitle").textContent = r.preset; $("lbMeta").textContent = `${r.width}×${r.height} · ${fmtBytes(r.bytes)} · actual pixels`;
+  const fly = fromImg && !RM.matches;
+  if (fly) img.style.opacity = "0";
   setZoomSrc(r.url); $("lbAfter").classList.add("on"); $("lbBefore").classList.remove("on");
-  $("lb").hidden = false; $("lbClose").focus();
+  lb.hidden = false; $("lbClose").focus(); moveSeg(true);
   beforeSrc().catch(() => {});   // get the original ready so switching is instant
+  if (!fly) return;
+  try { await img.decode(); } catch {}
+  img.style.opacity = "";
+  const a = fromImg.getBoundingClientRect(), b = img.getBoundingClientRect();
+  if (!a.width || !b.width || !zoom) return;
+  img.animate([{transformOrigin: "0 0", transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})`},
+               {transformOrigin: "0 0", transform: "none"}], {duration: 300, easing: "cubic-bezier(.2,.8,.2,1)"});
 }
 function setZoomSrc(src) {
   const img = $("lbImg"), r = zoom.r;
@@ -1273,7 +1504,7 @@ async function zoomTo(which) {
   if (!zoom || zoom.showing === which) return;
   const v = $("lbView"), sx = v.scrollLeft, sy = v.scrollTop;
   const z = zoom; z.showing = which;
-  $("lbAfter").classList.toggle("on", which === "after"); $("lbBefore").classList.toggle("on", which === "before");
+  $("lbAfter").classList.toggle("on", which === "after"); $("lbBefore").classList.toggle("on", which === "before"); moveSeg();
   let src;
   if (which === "before") { $("lbMeta").textContent = "Rendering the original…"; try { src = await beforeSrc(); } catch (e) { toast(e.message); z.showing = "before-failed"; if (zoom === z) zoomTo("after"); return; } }
   if (zoom !== z || z.showing !== which) return;   // closed or switched again while rendering
@@ -1283,22 +1514,34 @@ async function zoomTo(which) {
 }
 $("lbAfter").addEventListener("click", () => zoomTo("after"));
 $("lbBefore").addEventListener("click", () => zoomTo("before"));
-const closeZoom = () => { $("lb").hidden = true; zoom = null; };
-$("lbClose").addEventListener("click", closeZoom);
+function closeZoom({instant = false} = {}) {
+  const lb = $("lb"), img = $("lbImg");
+  if (lb.hidden) return;
+  const from = zoom && zoom.fromImg; zoom = null;
+  if (instant || RM.matches) { lb.hidden = true; return; }
+  if (from && from.isConnected) {   // fly back into the thumbnail
+    const a = from.getBoundingClientRect(), b = img.getBoundingClientRect();
+    if (a.width && b.width) img.animate([{transformOrigin: "0 0", transform: "none"},
+      {transformOrigin: "0 0", transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})`}], {duration: 200, easing: "ease-in", fill: "forwards"});
+  }
+  lb.classList.add("closing");
+  closeZoom.t = setTimeout(() => { lb.hidden = true; lb.classList.remove("closing"); img.getAnimations().forEach(x => x.cancel()); }, 200);
+}
+$("lbClose").addEventListener("click", () => closeZoom());
 $("lb").addEventListener("click", e => { if (e.target === $("lbView")) closeZoom(); });
 
 /* ---------- keyboard ---------- */
 addEventListener("keydown", e => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
   if (!$("lb").hidden) {
-    if (e.key === "Escape") closeZoom();
+    if (e.key === "Escape") closeZoom({instant: true});
     else if (e.key === "b" || e.key === "B") zoomTo(zoom.showing === "after" ? "before" : "after");
     return;
   }
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $("file").click(); }
-  else if (mod && e.key.toLowerCase() === "e") { e.preventDefault(); show("home"); runExport(); }
-  else if (mod && e.key === ",") { e.preventDefault(); show("settings"); }
+  else if (mod && e.key.toLowerCase() === "e") { e.preventDefault(); show("home", {instant: true}); runExport(); }
+  else if (mod && e.key === ",") { e.preventDefault(); show("settings", {instant: true}); }
   else if (!typing && !mod && !exporting && (e.key === "[" || e.key === "]") && queue.length > 1) {
     selectItem((cur + (e.key === "]" ? 1 : queue.length - 1)) % queue.length);
   }
@@ -1306,8 +1549,21 @@ addEventListener("keydown", e => {
 
 /* ---------- drop anywhere: files or whole folders ---------- */
 let depth = 0;
-addEventListener("dragenter", e => { if (![...e.dataTransfer.types].includes("Files")) return; e.preventDefault(); depth++; $("dropTitle").textContent = media ? "Drop to add to this batch" : "Drop it here to start fitting"; $("drop").hidden = false; });
-addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; $("drop").hidden = true; } });
+function openDrop() {
+  const d = $("drop"); clearTimeout(openDrop.t); d.classList.remove("closing");
+  if (d.hidden) { d.hidden = false; $("dropApti").classList.remove("cropping"); aptiState($("dropApti"), "receiving"); }
+}
+function closeDrop(dropped) {
+  const d = $("drop"); if (d.hidden) return;
+  const a = $("dropApti");
+  if (dropped) { aptiState(a, null); a.classList.add("cropping"); }   // brackets snap shut on the drop
+  openDrop.t = setTimeout(() => {
+    d.classList.add("closing");
+    openDrop.t = setTimeout(() => { d.hidden = true; d.classList.remove("closing"); a.classList.remove("cropping"); }, 150);
+  }, dropped && !RM.matches ? 220 : 0);
+}
+addEventListener("dragenter", e => { if (![...e.dataTransfer.types].includes("Files")) return; e.preventDefault(); depth++; $("dropTitle").textContent = media ? "Drop to add to this batch" : "Drop it here to start fitting"; openDrop(); });
+addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; closeDrop(false); } });
 addEventListener("dragover", e => e.preventDefault());
 function readEntry(entry) {   // walks a dropped folder (and its subfolders) for files
   return new Promise(res => {
@@ -1323,7 +1579,7 @@ function readEntry(entry) {   // walks a dropped folder (and its subfolders) for
   });
 }
 addEventListener("drop", async e => {
-  e.preventDefault(); depth = 0; $("drop").hidden = true;
+  e.preventDefault(); depth = 0; closeDrop(true);
   const entries = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
   let files = entries.length ? (await Promise.all(entries.map(readEntry))).flat() : [...e.dataTransfer.files];
   files = files.filter(f => !f.name.startsWith(".")).sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
@@ -1446,7 +1702,7 @@ $("licDeactivate").addEventListener("click", async () => {
 });
 
 /* ---------- card motion: result cards and tray tiles respond to the pointer like physical tiles ---------- */
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const reduceMotion = RM;
 let hotCard = null;
 function cardReset(card) {
   if (!card) return;
@@ -1483,7 +1739,12 @@ document.addEventListener("pointerup", cardUp); document.addEventListener("point
 
 /* ---------- right-click options on Export: main action first, then options, then the Settings link ---------- */
 let menuEl = null, menuReturn = null;
-function closeMenu() { if (!menuEl) return; menuEl.remove(); menuEl = null; if (menuReturn) menuReturn.focus(); menuReturn = null; }
+function closeMenu(instant) {
+  if (!menuEl) return;
+  const m = menuEl; menuEl = null;
+  if (instant === true || RM.matches) m.remove(); else { m.classList.add("closing"); setTimeout(() => m.remove(), 130); }
+  if (menuReturn) menuReturn.focus(); menuReturn = null;
+}
 function openMenu(items, x, y, from) {
   closeMenu(); menuReturn = from || null;
   const m = document.createElement("div"); m.className = "menu glass"; m.setAttribute("role", "menu");
@@ -1507,11 +1768,11 @@ function openMenu(items, x, y, from) {
     const btns = [...m.querySelectorAll("button:not(:disabled)")], i = btns.indexOf(document.activeElement);
     if (e.key === "ArrowDown") { e.preventDefault(); btns[(i + 1) % btns.length].focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus(); }
-    else if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); closeMenu(); }
+    else if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); closeMenu(true); }
   });
 }
 document.addEventListener("pointerdown", e => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }, true);
-addEventListener("blur", closeMenu); addEventListener("resize", closeMenu);
+addEventListener("blur", () => closeMenu(true)); addEventListener("resize", () => closeMenu(true));
 function exportMenu(x, y) {
   const n = naming(), seo = namingActive(n), folder = STATE.settings && STATE.settings.export_folder;
   const items = [{label: $("exportLabel").textContent, main: true, disabled: $("exportBtn").disabled, action: runExport}, "-", {heading: "Save to"}];
@@ -1532,6 +1793,29 @@ $("exportBtn").addEventListener("keydown", e => {
   if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const r = $("exportBtn").getBoundingClientRect(); exportMenu(r.left, r.bottom + 6); }
 });
 $("exportBtn").title = "Right-click for save location and file name options";
+
+/* ---------- Apti's eyes follow the pointer while Apti is on screen and you aren't cropping ---------- */
+let eyeRaf = 0, lastPt = null, overFrame = false;
+$("frameWrap").addEventListener("pointerenter", () => { overFrame = true; trackEyes(); });
+$("frameWrap").addEventListener("pointerleave", () => { overFrame = false; });
+document.addEventListener("pointermove", e => {
+  if (e.pointerType === "touch") return;
+  lastPt = [e.clientX, e.clientY];
+  if (!eyeRaf) eyeRaf = requestAnimationFrame(trackEyes);
+}, {passive: true});
+function trackEyes() {
+  eyeRaf = 0;
+  const still = RM.matches || overFrame || drag || !lastPt;
+  document.querySelectorAll(".apti").forEach(a => {
+    const look = a.querySelector(".a-look"); if (!look) return;
+    if (still || !a.offsetParent) { look.style.transform = ""; return; }
+    const r = a.getBoundingClientRect();
+    if (!r.width || r.bottom < 0 || r.top > innerHeight) return;
+    const dx = lastPt[0] - (r.left + r.width / 2), dy = lastPt[1] - (r.top + r.height * .47), d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, d / 220) * 2.8;   // up to 2.8 units inside a 120-unit face
+    look.style.transform = `translate(${(dx / d * k).toFixed(2)}px, ${(dy / d * k).toFixed(2)}px)`;
+  });
+}
 
 /* ---------- start ---------- */
 (async () => {
@@ -1556,7 +1840,7 @@ $("exportBtn").title = "Right-click for save location and file name options";
   if (!pro() && selected.size > 1) { const first = [...selected][0]; selected.clear(); selected.add(first); }
   const tag = MODE === "server" ? (STATE.mac ? "Running on your Mac" : "Running locally") : "Browser preview";
   $("modeTag").textContent = tag; $("modeTag2").textContent = tag;
-  renderDests(); renderSettings();
+  renderDests(); renderSettings(); movePills(true);
   if (MODE === "browser") loadSample(true);   // the preview opens with a worked example
 })();
 </script>

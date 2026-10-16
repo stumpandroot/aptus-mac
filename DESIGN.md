@@ -64,6 +64,40 @@ Apti keeps its shape and animations, recolored to the palette:
 
 Apti blinks while idle. While files export, the brackets close in on the frame and back, so progress shows where you're already looking. After the first export of a session, Apti hops once. Under Reduce Motion, Apti holds still.
 
+## Motion and interaction
+
+Aptus uses the family tokens only (`calm` and `card` 300 ms, `snappy` 200 ms, `touch` 150 ms, `press` 100 ms), animates only transform and opacity, and never bounces a control. Keyboard actions stay instant. Under Reduce Motion, every movement below becomes a crossfade and Apti holds still.
+
+| Moment | What moves | Token |
+|---|---|---|
+| Changing pages | The new page slides in the direction you travel: down the sidebar it rises from below, back up it drops from above, and the old page lifts away. ⌘, and ⌘E switch instantly | `calm` in, 180 ms out |
+| Sidebar and phone tabs | One reader-white selection sheet slides between rows instead of jumping | `calm` |
+| Opening a file | The work area rises in once | `calm` |
+| Adding files to a batch | New tray tiles scale in | `snappy` |
+| Removing a file | The tile shrinks out, then the others slide over to close the gap | 150 ms, then `calm` |
+| Choosing a destination | Its check draws in; its crop frame appears | `snappy` |
+| Hovering a destination | Its crop frame turns solid and thicker on the photo, so you can see which outline is which | Instant |
+| Tapping the subject or resetting a crop | Every crop frame glides to its new place. Dragging a frame and arrow-key nudges stay instant | 300 ms ease-out |
+| Export button | The label morphs: "Export 4 files" → "Fitting 1 of 2…" → "✓ Saved 4 files", holds 1.8 s, then morphs back | 100 ms out, 180 ms in |
+| Results | Cards rise in one after another, 40 ms apart (up to 8) | `calm` |
+| Result cards and tray tiles | Card motion (tilt, lift, edge light, sheen, press) | `card` |
+| Check at 100% | The image flies out of its thumbnail and back into it on close. The Export and Original selection slides. Esc closes instantly | `calm` |
+| Right-click menu, 100% view, drop overlay | Fade out instead of vanishing. Esc and Tab close menus instantly | 120–200 ms |
+
+### Apti's reactions
+
+Apti reacts and never asks for attention.
+
+| Event | Apti |
+|---|---|
+| Idle | Blinks. Its eyes follow the pointer, up to 2.8 units inside a 120-unit face, but hold still while the pointer is over the photo or you're dragging a crop |
+| Files dragged over the window | Perks up: the body lifts and the brackets open wide |
+| Files dropped | The brackets snap shut on the frame, then the overlay fades |
+| Exporting | The brackets close in and back on the Export button |
+| First export of a session | The one celebration: Apti hops and raises its brackets |
+| Later exports | A small nod: the brackets tap in once |
+| An export fails | Worried: a flat mouth and drooping brackets, in a butter "Stopped" block with the reason |
+
 ## Crop outlines
 
 Crop frames on the photo use family colors in this order: persimmon, sage text-safe, butter, petal text-safe, ink, sage, persimmon text-safe, butter text-safe. Each frame also carries a text label with its destination and size, so color is never the only cue.
