@@ -149,7 +149,7 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 .hero{display:grid;gap:8px}
 
 /* ---- stage: a sheet holding an inset photo well ---- */
-.stage-card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-lg);box-shadow:var(--shadow-low);padding:14px;display:grid;gap:12px}
+.stage-card{min-width:0;background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-lg);box-shadow:var(--shadow-low);padding:14px;display:grid;gap:12px}
 .stage-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 4px 0}
 .file-name{font-weight:600;flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:var(--butter-wash);color:var(--ink)}
@@ -161,7 +161,7 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 .frame svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .focal-note{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px;color:var(--text2);font-size:13px}
 .focal-note b{font-weight:600;color:var(--ink)}
-.warn-inline{color:var(--ink);background:var(--butter-wash);border-radius:6px;padding:1px 6px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.warn-inline{display:block;width:fit-content;max-width:100%;margin-top:4px;color:var(--ink);background:var(--butter-wash);border-radius:6px;padding:3px 8px}
 
 /* empty state: Apti on a tinted disc, one sentence, one action */
 .empty{display:grid;justify-items:center;gap:12px;padding:40px 20px 36px;text-align:center}
@@ -229,7 +229,9 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 .thumb{border-radius:8px;height:146px;display:grid;place-items:center;overflow:hidden;background:var(--bar);box-shadow:var(--well);cursor:zoom-in}
 .thumb img{max-width:100%;max-height:146px;display:block}
 .result-body{padding:0 2px 2px;display:grid;gap:5px}
-.result h3{font-size:14px;font-weight:600;line-height:1.3}
+.result h3{font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+#loaded,.stage-head{min-width:0}
+.dest-name,.custom-row strong,.file-name{overflow-wrap:anywhere}
 .pills{display:flex;flex-wrap:wrap;gap:5px}
 .pill{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;border-radius:6px;padding:1px 6px;background:var(--bar);color:var(--text2);border:1px solid var(--hairline)}
 .pill.ok{background:var(--sage-wash);color:var(--ink);border-color:transparent}
@@ -841,13 +843,14 @@ function show(view, {instant = false} = {}) {
   scrollTo({top: 0});
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-view]"); if (b) show(b.dataset.view); });
-addEventListener("resize", () => movePills(true));
+addEventListener("resize", () => { movePills(true); if (media && !tweenRaf) requestAnimationFrame(() => drawCrops()); });
+$("preview").addEventListener("load", () => { if (media && !tweenRaf) drawCrops(); });   // size labels once the photo has its on-screen size
 
 async function api(path, body, method) {
   const init = body instanceof FormData ? {method: "POST", body} : body ? {method: method || "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: method || "GET"};
   const res = await fetch(path, init), data = await res.json().catch(() => ({}));
-  if (res.status === 402) throw new Error(`${data.detail || "That's part of Aptus Pro."} Add your license in Settings.`);
-  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Something went wrong. Try that again.");
+  if (res.status === 402) throw Object.assign(new Error(`${data.detail || "That's part of Aptus Pro."} Add your license in Settings.`), {status: 402});
+  if (!res.ok) throw Object.assign(new Error(typeof data.detail === "string" ? data.detail : "Something went wrong. Try that again."), {status: res.status});
   return data;
 }
 
@@ -1019,7 +1022,9 @@ function drawCrops(opts = {}) {
 }
 function paintCrops(ids, boxes, focalPt) {
   shownBoxes = boxes; shownFocal = focalPt;
-  const w = media.width, h = media.height, svg = $("marks"), u = Math.max(w, h) / 320, frameFor = id => boxes[id], focal = focalPt;
+  const w = media.width, h = media.height, svg = $("marks"), frameFor = id => boxes[id], focal = focalPt;
+  // u = source pixels per 2.2 screen pixels, so labels and handles stay the same size on screen at any photo size
+  const disp = $("preview").clientWidth, u = disp ? (w / disp) * 2.2 : Math.max(w, h) / 320;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   const colorOf = id => CROP_COLORS[ids.indexOf(id) % CROP_COLORS.length];
   let out = "";
@@ -1027,27 +1032,35 @@ function paintCrops(ids, boxes, focalPt) {
     const [x, y, cw, ch] = frameFor(active);
     out += `<path d="M0 0H${w}V${h}H0Z M${x} ${y}V${y + ch}H${x + cw}V${y}Z" fill="#26352E" fill-opacity=".4" fill-rule="evenodd" pointer-events="none"/>`;
   }
+  // Hit areas are drawn last, in this order: the selected frame's body, then every other frame's edge,
+  // then the selected frame's corner handles. So another frame's edge stays clickable even where it
+  // crosses the selected frame, and clicking it selects that frame instead of moving the subject point.
+  let hitBody = "", hitEdges = "", hitHandles = "";
   for (const id of [...ids.filter(i => i !== active), ...(active ? [active] : [])]) {
     const [x, y, cw, ch] = frameFor(id), on = id === active, c = colorOf(id), hot = id === hoverDest && !on;
-    out += `<g data-id="${id}">
+    out += `<g data-frame="${id}">
       <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="${u * (on ? 3.4 : 2.4)}" pointer-events="none"/>
       <rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="${u * 2}" fill="none" stroke="${c}" stroke-width="${u * (on ? 1.8 : hot ? 2.2 : 1.1)}" ${on || hot ? "" : `stroke-dasharray="${u * 4} ${u * 3}"`} pointer-events="none"/>
-      <rect class="hit" x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${on ? "#000" : "none"}" fill-opacity="0" stroke="#000" stroke-opacity="0" stroke-width="${u * 9}" pointer-events="${on ? "all" : "stroke"}" style="cursor:${on ? "move" : "pointer"}"/>`;
+`;
+    const hit = `<rect class="hit" data-id="${id}" x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${on ? "#000" : "none"}" fill-opacity="0" stroke="#000" stroke-opacity="0" stroke-width="${u * (on ? 9 : 7)}" pointer-events="${on ? "all" : "stroke"}" style="cursor:${on ? "move" : "pointer"}"/>`;
+    if (on) hitBody = hit; else hitEdges += hit;
     if (on) {
       const p = presetById(id), small = cw < p.width || ch < p.height;
-      const label = `${p.name} · ${cw}×${ch}`, fs = u * 6.2, lw = label.length * fs * .55 + u * 9;
-      const ly = y > fs * 2.4 ? y - fs * 2.1 : y + u * 3;
-      out += `<rect x="${x}" y="${ly}" width="${lw}" height="${fs * 1.8}" rx="${fs * .9}" fill="${small ? "#B23F24" : "#26352E"}" pointer-events="none"/>
-        <text x="${x + u * 4}" y="${ly + fs * 1.25}" font-size="${fs}" font-family="-apple-system, system-ui, sans-serif" font-weight="600" fill="#fff" pointer-events="none">${esc(label)}</text>`;
+      const label = `${p.name} · ${cw}×${ch}`;
+      let fs = u * 6.2, lw = label.length * fs * .55 + u * 9;
+      if (lw > w * .98) { fs *= w * .98 / lw; lw = w * .98; }   // narrow photos: shrink the label to fit
+      const ly = y > fs * 2.4 ? y - fs * 2.1 : y + u * 3, lx = Math.max(0, Math.min(x, w - lw));
+      out += `<rect x="${lx}" y="${ly}" width="${lw}" height="${fs * 1.8}" rx="${fs * .9}" fill="${small ? "#B23F24" : "#26352E"}" pointer-events="none"/>
+        <text x="${lx + fs * .65}" y="${ly + fs * 1.25}" font-size="${fs}" font-family="-apple-system, system-ui, sans-serif" font-weight="600" fill="#fff" pointer-events="none">${esc(label)}</text>`;
       for (const [hx, hy, k] of [[x, y, "tl"], [x + cw, y, "tr"], [x, y + ch, "bl"], [x + cw, y + ch, "br"]])
-        out += `<circle data-h="${k}" cx="${hx}" cy="${hy}" r="${u * 4.2}" fill="#fff" stroke="${c}" stroke-width="${u * 1.6}" pointer-events="all" style="cursor:${k === "tl" || k === "br" ? "nwse" : "nesw"}-resize"/>`;
+        hitHandles += `<circle data-h="${k}" data-id="${id}" cx="${hx}" cy="${hy}" r="${u * 4.2}" fill="#fff" stroke="${c}" stroke-width="${u * 1.6}" pointer-events="all" style="cursor:${k === "tl" || k === "br" ? "nwse" : "nesw"}-resize"/>`;
     }
     out += `</g>`;
   }
   const r = Math.max(w, h) / 80;
   out += `<circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r * 1.9}" fill="#fff" fill-opacity=".35" pointer-events="none"/>
     <circle cx="${focal[0] * w}" cy="${focal[1] * h}" r="${r}" fill="#FA6B47" stroke="#fff" stroke-width="${r / 2.5}" pointer-events="none"/>`;
-  svg.innerHTML = out;
+  svg.innerHTML = out + hitBody + hitEdges + hitHandles;
 }
 
 function updateFrameNote() {
@@ -1065,15 +1078,17 @@ const toSource = e => { const r = $("preview").getBoundingClientRect(); return [
 $("frameWrap").addEventListener("pointerdown", e => {
   if (!media || e.button > 0) return;
   const [sx, sy] = toSource(e), handle = e.target.closest("[data-h]"), g = e.target.closest("[data-id]");
-  if (g && g.dataset.id !== active && !handle) { active = g.dataset.id; drawCrops(); renderDests(); }
+  let picked = false;
+  if (g && g.dataset.id !== active && !handle) { active = g.dataset.id; picked = true; drawCrops(); renderDests(); }
   const id = active;
   if (handle && id) {
     const [x, y, cw, ch] = frameFor(id), k = handle.dataset.h;
     drag = {kind: "resize", id, ax: k.includes("l") ? x + cw : x, ay: k.includes("t") ? y + ch : y, left: k.includes("l"), top: k.includes("t")};
   } else if (g && id) {
-    const [x, y] = frameFor(id); drag = {kind: "move", id, ox: sx - x, oy: sy - y, sx, sy, moved: false};
+    const [x, y] = frameFor(id); drag = {kind: "move", id, ox: sx - x, oy: sy - y, sx, sy, moved: false, picked};
   } else drag = {kind: "focal", sx, sy, moved: false};
   $("frameWrap").setPointerCapture(e.pointerId); e.preventDefault();
+  $("frameWrap").focus({preventScroll: true});   // so arrow keys nudge the crop right after a click
 });
 $("frameWrap").addEventListener("pointermove", e => {
   if (!drag) return;
@@ -1095,7 +1110,7 @@ $("frameWrap").addEventListener("pointermove", e => {
 });
 const endDrag = () => {
   if (!drag) return;
-  if (!drag.moved && drag.kind !== "resize") {   // a tap, not a drag: set the focal point
+  if (!drag.moved && (drag.kind === "focal" || (drag.kind === "move" && !drag.picked))) {   // a tap, not a drag: set the focal point
     focal = [Math.min(Math.max(drag.sx / media.width, 0), 1), Math.min(Math.max(drag.sy / media.height, 0), 1)];
     drawCrops({animate: true});
   } else renderDests();
@@ -1115,7 +1130,7 @@ const fractionsOf = (cust, w, h) => Object.fromEntries(Object.entries(cust).filt
 /* ---------- the batch: one or many files ---------- */
 function stash() {   // keep the on-screen file's crops with it
   const it = queue[cur]; if (!it || !media) return;
-  it.focal = focal; it.custom = custom; it.t = t;
+  it.focal = focal; it.custom = custom; it.t = t; it.active = active;
 }
 function renderTray() {
   const many = queue.length > 1;
@@ -1186,7 +1201,7 @@ function ensureUploaded(it) {   // server mode: send the file to the local engin
 }
 let selTok = 0;
 async function selectItem(i) {   // shows file i; returns false if it couldn't be opened
-  stash();
+  stash(); clearTimeout(scrubTimer);   // a pending scrub belongs to the file being left
   const it = queue[i]; if (!it) return false;
   const tok = ++selTok;
   // Nothing on screen belongs to the new file until it has loaded, so edits can't land on the wrong file.
@@ -1195,20 +1210,33 @@ async function selectItem(i) {   // shows file i; returns false if it couldn't b
     if (MODE === "server") {
       const info = await ensureUploaded(it);
       if (tok !== selTok) return false;   // another file was picked while this one uploaded
-      focal = it.focal; custom = it.custom; t = it.t;
+      focal = it.focal; custom = it.custom; t = it.t; active = it.active || null;
       if (info.kind === "video") { $("scrub").max = Math.max(info.duration - 0.05, 0); }
       setLoaded({...info, name: it.name, sample: it.sample}, `/api/preview/${info.id}?t=${t}`);
     } else {
-      focal = it.focal; custom = it.custom; t = it.t;
+      focal = it.focal; custom = it.custom; t = it.t; active = it.active || null;
       await openInBrowser(it, tok);
       if (tok !== selTok) return false;
     }
     $("scrub").value = t; $("time").textContent = t.toFixed(2) + " s";
     return true;
   } catch (e) {
-    if (tok === selTok) { $("err").textContent = `${it.name}: ${e.message}`; toast(e.message); }
+    if (tok === selTok) showUnreadable(it, e.message);
     return false;
   }
+}
+function showUnreadable(it, msg) {
+  it.broken = msg;
+  $("err").textContent = `${it.name}: ${msg}`; toast(`${it.name} couldn't be opened. ${msg}`);
+  $("preview").removeAttribute("src"); $("marks").innerHTML = ""; $("frameNote").textContent = "";
+  $("video").hidden = true; shownFocal = null;
+  if (queue.length === 1) {   // nothing else to show: back to the empty state
+    queue = []; cur = -1; $("loaded").hidden = true; $("empty").hidden = false;
+  } else {
+    $("fileName").textContent = it.name; $("fileName").title = it.name;
+    $("dims").textContent = "Can't open this file. Remove it from the batch or pick another.";
+  }
+  renderDests();
 }
 function setLoaded(info, previewSrc) {
   media = info;
@@ -1226,6 +1254,11 @@ function setLoaded(info, previewSrc) {
   renderDests(); drawCrops();
 }
 function clearResults() { $("results").innerHTML = ""; $("ready").hidden = true; $("ready").classList.remove("oops"); $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
+$("file").tabIndex = -1; $("addFile").tabIndex = -1;   // the visible buttons take focus instead
+document.querySelectorAll('label[for="file"], label[for="addFile"]').forEach(l => {
+  l.tabIndex = 0; l.setAttribute("role", "button");
+  l.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(l.htmlFor).click(); } });
+});
 $("file").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files, {replace: true}); e.target.value = ""; });
 $("addFile").addEventListener("change", e => { if (e.target.files.length) addFiles(e.target.files); e.target.value = ""; });
 
@@ -1251,7 +1284,8 @@ async function openInBrowser(it, tok) {
 function previewOf(c) {
   const s = Math.min(1, 1600 / Math.max(c.width, c.height)), p = document.createElement("canvas");
   p.width = Math.round(c.width * s); p.height = Math.round(c.height * s);
-  p.getContext("2d").drawImage(c, 0, 0, p.width, p.height);
+  const g = p.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, p.width, p.height);   // transparency previews on white
+  g.drawImage(c, 0, 0, p.width, p.height);
   return p.toDataURL("image/jpeg", .86);
 }
 
@@ -1264,10 +1298,11 @@ function frameCanvas(maxW) {
   c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height); return c;
 }
 async function goTo(time) {
-  if (!media) return;
+  if (!media || media.kind !== "video") return;
+  const tok = selTok;
   t = time; $("time").textContent = t.toFixed(2) + " s"; $("scrub").value = t; stash(); renderNamePreview();
   if (MODE === "server") { $("preview").src = `/api/preview/${media.id}?t=${t}`; }
-  else { await seek(t); source = frameCanvas(); $("preview").src = previewOf(source); }
+  else { await seek(t); if (tok !== selTok) return; source = frameCanvas(); $("preview").src = previewOf(source); }
 }
 let scrubTimer;
 $("scrub").addEventListener("input", e => { t = parseFloat(e.target.value); $("time").textContent = t.toFixed(2) + " s"; clearTimeout(scrubTimer); scrubTimer = setTimeout(() => goTo(t), 120); });
@@ -1279,25 +1314,30 @@ function sharpness(c) {   // variance of the Laplacian, the engine's score
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, l = g[i-w] + g[i+w] + g[i-1] + g[i+1] - 4 * g[i]; s += l; q += l * l; n++; }
   const m = s / n; return q / n - m * m;
 }
+const SWITCHED = "switched";   // thrown when you open another file while a video tool is still working
 $("sharpBtn").addEventListener("click", async () => {
+  if (!media || media.kind !== "video") return;
+  const tok = selTok, same = () => { if (tok !== selTok) throw SWITCHED; };
   $("sharpBtn").disabled = true; $("picks").innerHTML = `<span class="meta">Scoring frames near ${t.toFixed(2)} s…</span>`;
   try {
     let picks;
-    if (MODE === "server") picks = await api("/api/sharp", {id: media.id, t});
+    if (MODE === "server") { picks = await api("/api/sharp", {id: media.id, t}); same(); }
     else {
       const t0 = t, start = Math.max(0, t0 - 1), end = Math.min(vid.duration - .05, t0 + 1), scored = [];
-      for (let x = start; x <= end + 1e-6; x += .1) { await seek(x); scored.push({t: +x.toFixed(2), score: sharpness(frameCanvas(480))}); }
+      for (let x = start; x <= end + 1e-6; x += .1) { await seek(x); same(); scored.push({t: +x.toFixed(2), score: sharpness(frameCanvas(480))}); }
       scored.sort((a, b) => b.score - a.score); picks = [];
       for (const s of scored) { if (picks.every(p => Math.abs(p.t - s.t) >= .2)) picks.push(s); if (picks.length === 3) break; }
-      await goTo(t0);
+      await goTo(t0); same();
     }
     $("picks").innerHTML = picks.map((p, i) => `<button class="chip pressable ${i ? "" : "best"}" data-t="${p.t}"><span class="inner">${i ? "Also sharp" : "Sharpest"} · ${(+p.t).toFixed(2)} s</span></button>`).join("");
-  } catch (e) { $("picks").innerHTML = ""; toast(e.message); }
+  } catch (e) { if (e !== SWITCHED) { $("picks").innerHTML = ""; toast(e.message); } }
   $("sharpBtn").disabled = false;
 });
 $("picks").addEventListener("click", e => { const b = e.target.closest("button"); if (b) goTo(parseFloat(b.dataset.t)); });
 
 $("sheetBtn").addEventListener("click", async () => {
+  if (!media || media.kind !== "video") return;
+  const tok = selTok, same = () => { if (tok !== selTok) throw SWITCHED; };
   $("sheetBtn").disabled = true;
   try {
     let src, label;
@@ -1306,12 +1346,12 @@ $("sheetBtn").addEventListener("click", async () => {
       const t0 = t, count = 12, cols = 4, tw = 480, gap = 12, th = Math.round(tw * vid.videoHeight / vid.videoWidth), rows = Math.ceil(count / cols);
       const c = document.createElement("canvas"); c.width = cols * tw + (cols + 1) * gap; c.height = rows * th + (rows + 1) * gap;
       const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
-      for (let i = 0; i < count; i++) { await seek(vid.duration * (i + .5) / count); g.drawImage(vid, gap + (i % cols) * (tw + gap), gap + Math.floor(i / cols) * (th + gap), tw, th); }
-      await goTo(t0); src = c.toDataURL("image/jpeg", .9); label = `${c.width}×${c.height}`;
+      for (let i = 0; i < count; i++) { await seek(vid.duration * (i + .5) / count); same(); g.drawImage(vid, gap + (i % cols) * (tw + gap), gap + Math.floor(i / cols) * (th + gap), tw, th); }
+      await goTo(t0); same(); src = c.toDataURL("image/jpeg", .9); label = `${c.width}×${c.height}`;
     }
     $("sheetOut").hidden = false;
     $("sheetOut").innerHTML = `<div class="row" style="justify-content:space-between"><h2>Contact sheet</h2><span class="meta">${esc(label)}</span></div><img alt="Contact sheet of 12 frames" src="${src}">`;
-  } catch (e) { toast(e.message); }
+  } catch (e) { if (e !== SWITCHED) toast(e.message); }
   $("sheetBtn").disabled = false;
 });
 $("intervalBtn").addEventListener("click", async () => {
@@ -1434,13 +1474,23 @@ async function runExport() {
       const number = start + k;
       if (batch) morphLabel(`Fitting ${k + 1} of ${items.length}…`);
       if (MODE === "server") {
-        const info = await ensureUploaded(it), w = info.width, h = info.height;
-        const d = await api("/api/export", {id: info.id, presets: list.map(p => p.id), focal: it.focal, t: it.t, boxes: fractionsOf(it.custom, w, h), naming: n, number, batch});
+        let info, d;
+        try {
+          info = await ensureUploaded(it);
+          d = await api("/api/export", {id: info.id, presets: list.map(p => p.id), focal: it.focal, t: it.t, boxes: fractionsOf(it.custom, info.width, info.height), naming: n, number, batch});
+        } catch (err) {
+          // Skip a file the engine can't read (400). Stop for anything else: a Pro limit (402), a disk or
+          // engine problem (5xx), or a single-file export, and show the real reason.
+          if (!batch || (err.status && err.status !== 400)) throw err;
+          failed.push(`${it.name} (${err.message.replace(/\.$/, "")})`); continue;
+        }
+        const w = info.width, h = info.height;
         folder = d.folder;
         d.results.forEach(r => addResult({...r, url: `/api/file/${encodeURIComponent(r.file)}`,
           ref: {id: info.id, preset: r.preset_id, focal: it.focal, t: it.t, box: fractionsOf(it.custom, w, h)[r.preset_id] || null, width: r.width}}));
         count += d.results.length;
       } else {
+        if (it.broken) { failed.push(it.name); continue; }
         if (queue[cur] !== it || !media) {
           if (!(await selectItem(queue.indexOf(it)))) { failed.push(it.name); continue; }
         }
@@ -1448,8 +1498,9 @@ async function runExport() {
       }
       it.done = true; renderTray();
     }
-    if (failed.length) $("err").textContent = `Skipped ${failed.length === 1 ? "a file" : failed.length + " files"} this browser couldn't open: ${failed.join(", ")}`;
+    if (failed.length) { $("err").textContent = `Skipped ${failed.length === 1 ? "a file" : failed.length + " files"} that couldn't be read: ${failed.join(", ")}`; toast(`Skipped ${failed.length} ${failed.length === 1 ? "file" : "files"}. See the note under Export.`); }
     if (!pro() && queue.length > 1) toast("Free exported the selected file. Pro exports the whole batch.");
+    if (!count) throw new Error(failed.length ? `None of the files could be read: ${failed.join(", ")}` : "Nothing was exported.");
     celebrate(count, MODE === "server" ? `Saved to ${tilde(folder)}` : "Right-click any result to save it. The Mac app saves to a folder.", altText(n));
     morphLabel(`✓ ${MODE === "server" ? "Saved" : "Made"} ${count} ${count === 1 ? "file" : "files"}`, 1800); holdThenRestore(1800);
     if (MODE === "server") STATE.settings.last_presets = list.map(p => p.id);
@@ -1472,7 +1523,7 @@ function moveSeg(instant) {
 async function openZoom(r, fromImg) {
   const lb = $("lb"), img = $("lbImg");
   clearTimeout(closeZoom.t); lb.classList.remove("closing"); img.getAnimations().forEach(a => a.cancel());
-  zoom = {r, before: null, showing: "after", fromImg};
+  zoom = {r, before: null, showing: "after", fromImg}; zoomOpener = document.activeElement;
   $("lbTitle").textContent = r.preset; $("lbMeta").textContent = `${r.width}×${r.height} · ${fmtBytes(r.bytes)} · actual pixels`;
   const fly = fromImg && !RM.matches;
   if (fly) img.style.opacity = "0";
@@ -1518,10 +1569,12 @@ async function zoomTo(which) {
 }
 $("lbAfter").addEventListener("click", () => zoomTo("after"));
 $("lbBefore").addEventListener("click", () => zoomTo("before"));
+let zoomOpener = null;
 function closeZoom({instant = false} = {}) {
   const lb = $("lb"), img = $("lbImg");
   if (lb.hidden) return;
   const from = zoom && zoom.fromImg; zoom = null;
+  if (zoomOpener && zoomOpener.isConnected && zoomOpener !== document.body) zoomOpener.focus({preventScroll: true});
   if (instant || RM.matches) { lb.hidden = true; return; }
   if (from && from.isConnected) {   // fly back into the thumbnail
     const a = from.getBoundingClientRect(), b = img.getBoundingClientRect();
@@ -1539,7 +1592,11 @@ addEventListener("keydown", e => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
   if (!$("lb").hidden) {
     if (e.key === "Escape") closeZoom({instant: true});
-    else if (e.key === "b" || e.key === "B") zoomTo(zoom.showing === "after" ? "before" : "after");
+    else if ((e.key === "b" || e.key === "B") && zoom) zoomTo(zoom.showing === "after" ? "before" : "after");
+    else if (e.key === "Tab" && zoom) {   // keep focus inside the 100% view
+      const f = [$("lbAfter"), $("lbBefore"), $("lbClose")], i = f.indexOf(document.activeElement);
+      e.preventDefault(); f[(i + (e.shiftKey ? f.length - 1 : 1) + f.length) % f.length].focus();
+    }
     return;
   }
   const mod = e.metaKey || e.ctrlKey;
@@ -1792,7 +1849,10 @@ function exportMenu(x, y) {
     "-", {label: "Export settings…", action: () => show("settings")});
   openMenu(items, x, y, $("exportBtn"));
 }
-$("exportBtn").addEventListener("contextmenu", e => { e.preventDefault(); exportMenu(e.clientX, e.clientY); });
+document.addEventListener("contextmenu", e => {   // a disabled button gets no events of its own, so hit-test it
+  const r = $("exportBtn").getBoundingClientRect();
+  if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { e.preventDefault(); exportMenu(e.clientX, e.clientY); }
+});
 $("exportBtn").addEventListener("keydown", e => {
   if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const r = $("exportBtn").getBoundingClientRect(); exportMenu(r.left, r.bottom + 6); }
 });

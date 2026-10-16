@@ -233,6 +233,10 @@ def unique_path(path: Path) -> Path:
 def jpeg_response(img: Image.Image, max_width: int = 1400) -> Response:
     if img.width > max_width:
         img = img.resize((max_width, round(img.height * max_width / img.width)))
+    if img.mode in ("RGBA", "LA", "PA") or (img.mode == "P" and "transparency" in img.info):
+        rgba = img.convert("RGBA")   # transparency previews on white, like the JPG exports
+        img = Image.new("RGB", rgba.size, (255, 255, 255))
+        img.paste(rgba, mask=rgba.getchannel("A"))
     buf = io.BytesIO()
     img.convert("RGB").save(buf, "JPEG", quality=85)
     return Response(buf.getvalue(), media_type="image/jpeg")
@@ -402,7 +406,7 @@ class CustomPreset(BaseModel):
 
 @app.post("/api/custom-presets")
 def save_custom_preset(req: CustomPreset):
-    need_pro("Custom presets")
+    need_pro("Saving your own presets")
     current = custom_presets()
     if req.id and req.id not in current:
         raise HTTPException(404, "That custom preset no longer exists.")
@@ -512,9 +516,9 @@ def export(req: ExportRequest):
     if len(req.presets) > 1:
         need_pro("Exporting to several destinations at once")
     if req.batch:
-        need_pro("Batch exports")
+        need_pro("Exporting a batch")
     if any(known[p].custom for p in req.presets):
-        need_pro("Custom presets")
+        need_pro("Exporting with your own presets")
     for pid in req.presets:
         check_box(req.boxes.get(pid), known[pid].name)
     naming = Naming(**{k: v for k, v in (req.naming or {}).items()
@@ -600,7 +604,7 @@ class SheetRequest(BaseModel):
 
 @app.post("/api/contact-sheet")
 def sheet(req: SheetRequest):
-    need_pro("Contact sheets")
+    need_pro("Making contact sheets")
     m = media(req.id)
     if m["kind"] != "video":
         raise HTTPException(400, "Contact sheets need a video.")
@@ -619,7 +623,7 @@ class IntervalRequest(BaseModel):
 
 @app.post("/api/interval")
 def interval(req: IntervalRequest):
-    need_pro("Interval grabs")
+    need_pro("Grabbing frames at an interval")
     m = media(req.id)
     if m["kind"] != "video":
         raise HTTPException(400, "Interval grabs need a video.")
