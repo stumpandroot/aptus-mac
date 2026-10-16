@@ -482,12 +482,35 @@ def preview(mid: str, t: float = 0.0):
         return jpeg_response(ImageOps.exif_transpose(im))
 
 
+_SOURCES: "OrderedDict[tuple, Image.Image]" = None
+_SOURCES_LOCK = threading.Lock()
+
+
 def source_image(m: dict, t: float | None) -> tuple[Image.Image, str]:
-    if m["kind"] == "video":
-        return grab_frame(m["path"], t or 0.0), f"{(t or 0):.2f}s"
-    src = Image.open(m["path"])
-    src.load()
-    return src, ""
+    """The full-resolution picture for a file (or a video frame). The last few are kept in memory, because
+    live previews ask for the same picture once per destination."""
+    global _SOURCES
+    from collections import OrderedDict
+    key = (str(m["path"]), round(t or 0.0, 3) if m["kind"] == "video" else None)
+    with _SOURCES_LOCK:
+        if _SOURCES is None:
+            _SOURCES = OrderedDict()
+        if key in _SOURCES:
+            _SOURCES.move_to_end(key)
+            img = _SOURCES[key]
+        else:
+            img = None
+    if img is None:
+        if m["kind"] == "video":
+            img = grab_frame(m["path"], t or 0.0)
+        else:
+            img = Image.open(m["path"])
+            img.load()
+        with _SOURCES_LOCK:
+            _SOURCES[key] = img
+            while len(_SOURCES) > 4:
+                _SOURCES.popitem(last=False)
+    return img, (f"{(t or 0):.2f}s" if m["kind"] == "video" else "")
 
 
 def check_box(box, name):
@@ -551,6 +574,55 @@ def export(req: ExportRequest):
                        "client": naming.client, "shot": naming.shot, "numbered": naming.numbered}
     write_settings(s)
     return {"folder": str(folder), "results": results, "alt": naming.alt_text() if naming.active else ""}
+
+
+# ---------- live previews: the real export for one destination, rendered but not saved ----------
+
+_PREVIEWS: dict[str, tuple[bytes, str]] = {}
+_PREVIEW_ORDER: list[str] = []
+MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", "avif": "image/avif"}
+
+
+class PreviewRequest(BaseModel):
+    id: str
+    preset: str
+    focal: tuple[float, float] = (0.5, 0.5)
+    t: float | None = None
+    box: list[float] | None = None
+
+
+@app.post("/api/preview-result")
+def preview_result(req: PreviewRequest):
+    """Run the exact export for one destination and keep the bytes in memory. Nothing is written to disk."""
+    m = media(req.id)
+    known = all_presets()
+    if req.preset not in known:
+        raise HTTPException(400, "Unknown preset.")
+    p = known[req.preset]
+    if p.custom and not license_state()["pro"]:
+        need_pro("Exporting with your own presets")
+    check_box(req.box, p.name)
+    src, _ = source_image(m, req.t)
+    outs = [(f"{w}w", r) for w, r in export_set(src, p)] if p.is_set else [("", export_image(src, p, focal=req.focal, box=req.box))]
+    results = []
+    for tag, r in outs:
+        key = uuid.uuid4().hex
+        _PREVIEWS[key] = (r.data, MIME[r.format])
+        _PREVIEW_ORDER.append(key)
+        while len(_PREVIEW_ORDER) > 120:   # keep memory bounded: the oldest previews drop out
+            _PREVIEWS.pop(_PREVIEW_ORDER.pop(0), None)
+        results.append({"key": key, "tag": tag, "width": r.width, "height": r.height, "bytes": r.bytes,
+                        "quality": r.quality, "target_met": r.size_target_met, "format": r.format,
+                        "warnings": r.warnings + limit_warnings(r.bytes, LIMITS)})
+    return {"preset": p.name, "preset_id": p.id, "results": results}
+
+
+@app.get("/api/preview-result/{key}")
+def preview_result_file(key: str):
+    if key not in _PREVIEWS:
+        raise HTTPException(404, "That preview has expired. Change anything to render it again.")
+    data, mime = _PREVIEWS[key]
+    return Response(data, media_type=mime, headers={"Cache-Control": "private, max-age=600"})
 
 
 class ReferenceRequest(BaseModel):

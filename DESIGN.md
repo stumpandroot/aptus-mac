@@ -98,6 +98,21 @@ Apti reacts and never asks for attention.
 | Later exports | A small nod: the brackets tap in once |
 | An export fails | Worried: a flat mouth and drooping brackets, in a butter "Stopped" block with the reason |
 
+## Preview cards
+
+The cards under the photo are live previews of the file on screen. Each one renders the real export (crop, size, format, quality, and file name) without saving anything.
+
+| What changes | What the cards do |
+| --- | --- |
+| A destination is added | A new card appears right away with an "Updating…" pill, then fills in |
+| A destination is removed | Its card leaves; the others stay put |
+| A crop frame or the subject point moves | Affected cards redraw after the drag ends (arrow-key nudges wait for a short pause) |
+| A video is scrubbed | Cards redraw for the new frame |
+| A naming field or your own preset changes | Names and sizes update; a saved card goes back to "Preview" |
+| Export finishes | Cards show "✓ Saved" (or "✓ Made" for contact sheets) until something changes |
+
+Only cards whose output would change are redrawn, so the rest don't flicker.
+
 ## Crop outlines
 
 Crop frames on the photo use family colors in this order: persimmon, sage text-safe, butter, petal text-safe, ink, sage, persimmon text-safe, butter text-safe. Each frame also carries a text label with its destination and size, so color is never the only cue.

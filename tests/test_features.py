@@ -251,3 +251,16 @@ def test_local_only_guard(client, monkeypatch):
 def test_slug_cuts_at_a_word_break():
     assert slugify("timber frame barn restoration with original hand hewn beams", 40) == "timber-frame-barn-restoration-with"
     assert slugify("a" * 50, 40) == "a" * 40   # one long word still gets cut
+
+
+def test_live_preview_renders_without_saving(client):
+    c, tmp = client
+    mid = upload(c)
+    r = c.post("/api/preview-result", json={"id": mid, "preset": "ig-feed", "box": [0.2, 0.1, 0.3, 0.6]}).json()
+    assert r["results"][0]["width"] == 1080 and r["results"][0]["height"] == 1440
+    img = c.get(f"/api/preview-result/{r['results'][0]['key']}")
+    assert img.headers["content-type"] == "image/jpeg" and Image.open(io.BytesIO(img.content)).size == (1080, 1440)
+    s = c.post("/api/preview-result", json={"id": mid, "preset": "web-set"}).json()
+    assert [x["tag"] for x in s["results"]] == ["640w", "1024w", "1600w", "2560w"]
+    assert not (tmp / "default-out").exists()   # previews never write files
+    assert c.get("/api/preview-result/nope").status_code == 404

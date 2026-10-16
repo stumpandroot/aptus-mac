@@ -395,6 +395,15 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
   .toast{transform:translate(-50%,0)}
 }
 
+/* ---- live previews ---- */
+.results-head{display:grid;gap:2px;padding:0 4px}
+.results-head .meta{font-size:11.5px}
+.result.updating .thumb img{opacity:.5;transition:opacity var(--touch) ease-out}
+.result.updating .pill.status{background:var(--butter-wash);color:var(--ink);border-color:transparent}
+.pill.saved{background:var(--sage-wash);color:var(--ink);border-color:transparent}
+.thumb .skel{font-family:var(--mono);font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--text3)}
+@media (max-width:1080px){.results-head{order:3}}
+
 /* ================= interaction and animation pass =================
    Family motion tokens only: calm and card 300 ms, snappy 200 ms, touch 150 ms, press 100 ms.
    Web rule: transform and opacity only (the `translate` and `scale` properties are used so they
@@ -599,6 +608,10 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
             <span class="kicker">Suggested alt text</span>
             <p id="altText"></p>
             <div class="row"><button class="mini pressable" id="copyAlt" type="button"><span class="inner">Copy alt text</span></button><span class="meta">A starting point. Describe what's actually in the photo.</span></div>
+          </div>
+          <div class="results-head" id="resultsHead" hidden>
+            <div class="kicker" id="resultsKicker">Preview</div>
+            <p class="meta" id="resultsNote"></p>
           </div>
           <div class="results" id="results"></div>
           <div class="sheet-out" id="sheetOut" hidden></div>
@@ -901,7 +914,9 @@ $("namingToggle").addEventListener("click", () => {
   if (open) { f.hidden = false; void f.offsetWidth; f.classList.add("fields-in"); f.t = setTimeout(() => f.classList.remove("fields-in"), 220); }
   else { f.classList.add("fields-out"); f.t = setTimeout(() => { f.hidden = true; f.classList.remove("fields-out"); }, 150); }
 });
-["nLocation","nDescriptor","nClient","nShot","nNumbered","nStart"].forEach(id => $(id).addEventListener("input", renderNamePreview));
+// New name fields mean the next export makes differently named files, so saved cards turn back into previews.
+const namesChanged = () => { queue.forEach(it => it.previews && it.previews.forEach(c => { c.saved = false; })); renderNamePreview(); renderCards(); };
+["nLocation","nDescriptor","nClient","nShot","nNumbered","nStart"].forEach(id => $(id).addEventListener("input", namesChanged));
 
 /* ---------- destinations ---------- */
 const presetById = id => PRESETS.find(x => x.id === id);
@@ -959,7 +974,7 @@ function renderDests() {
   $("freeNote").hidden = pro();
   $("presetRows").innerHTML = PRESETS.map(p => `<tr><td>${esc(p.name)}${p.custom ? ` <span class="pro">Yours</span>` : ""}</td><td>${dimsOf(p)}</td><td>${p.format.toUpperCase()}</td><td>${p.max_bytes ? "Under " + fmtBytes(p.max_bytes) + (p.widths ? " each" : "") : "None"}</td><td>${esc(p.basis || "")}</td></tr>`).join("");
   $("limitNote").textContent = LIMITS.length ? `Aptus also warns when a file is too big for ${LIMITS.map(l => `${l.name} (${fmtBytes(l.max_bytes)})`).join(", ")}.` : "";
-  renderNamePreview(); renderTray(); renderCustomList();
+  renderNamePreview(); renderTray(); renderCustomList(); renderCards();
 }
 $("dests").addEventListener("change", e => {
   const id = e.target.value;
@@ -967,10 +982,10 @@ $("dests").addEventListener("change", e => {
     if (!pro() && selected.size) { selected.clear(); toast("Free exports one destination at a time. Pro exports to all of them at once."); }
     selected.add(id); if (isCrop(presetById(id))) active = id;
   } else selected.delete(id);
-  renderDests(); drawCrops({animate: true});
+  renderDests(); drawCrops({animate: true}); clearTimeout(previewTimer); updatePreviews();   // a click is one action: show its card now
   const row = e.target.checked && $("d-" + id); if (row) row.closest(".dest").classList.add("just");   // the check draws in
 });
-$("clearBtn").addEventListener("click", () => { selected.clear(); renderDests(); drawCrops(); });
+$("clearBtn").addEventListener("click", () => { selected.clear(); renderDests(); drawCrops(); schedulePreviews(0); });
 /* Hovering a destination brings its crop frame forward on the photo */
 let hoverDest = null;
 $("dests").addEventListener("pointerover", e => {
@@ -1070,7 +1085,7 @@ function updateFrameNote() {
   note.innerHTML = `<span>Editing <b>${esc(p.name)}</b>. Drag the frame to move it and a corner to crop tighter.${small ? ` <span class="warn-inline">This area is ${cw}×${ch}, smaller than ${p.width}×${p.height}, so it will be enlarged.</span>` : ""}</span>
     ${custom[active] ? `<button class="chip pressable" id="resetFrame" type="button"><span class="inner">Reset this crop</span></button>` : ""}`;
 }
-document.addEventListener("click", e => { if (e.target.closest("#resetFrame")) { delete custom[active]; drawCrops({animate: true}); renderDests(); } });
+document.addEventListener("click", e => { if (e.target.closest("#resetFrame")) { delete custom[active]; drawCrops({animate: true}); renderDests(); stash(); schedulePreviews(); } });
 
 /* pointer handling: move, resize, select, or set the focal point */
 let drag = null;
@@ -1114,7 +1129,7 @@ const endDrag = () => {
     focal = [Math.min(Math.max(drag.sx / media.width, 0), 1), Math.min(Math.max(drag.sy / media.height, 0), 1)];
     drawCrops({animate: true});
   } else renderDests();
-  drag = null; stash();
+  drag = null; stash(); schedulePreviews();
 };
 $("frameWrap").addEventListener("pointerup", endDrag); $("frameWrap").addEventListener("pointercancel", endDrag);
 $("frameWrap").addEventListener("keydown", e => {   // arrow keys nudge the active frame; Shift moves farther
@@ -1122,7 +1137,7 @@ $("frameWrap").addEventListener("keydown", e => {   // arrow keys nudge the acti
   const step = Math.round((e.shiftKey ? .05 : .01) * media.width), [x, y, cw, ch] = frameFor(active);
   const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0, dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
   custom[active] = [Math.min(Math.max(x + dx, 0), media.width - cw), Math.min(Math.max(y + dy, 0), media.height - ch), cw, ch];
-  drawCrops(); renderDests(); stash(); e.preventDefault();
+  drawCrops(); renderDests(); stash(); schedulePreviews(450); e.preventDefault();
 });
 const fractionsOf = (cust, w, h) => Object.fromEntries(Object.entries(cust).filter(([id]) => selected.has(id))
   .map(([id, [x, y, cw, ch]]) => [id, [x / w, y / h, cw / w, ch / h]]));
@@ -1251,9 +1266,9 @@ function setLoaded(info, previewSrc) {
   $("intervalRow").hidden = MODE !== "server";
   $("preview").src = previewSrc;
   shownFocal = null;   // a new picture: frames appear in place, no glide from the last one
-  renderDests(); drawCrops();
+  renderDests(); drawCrops(); schedulePreviews(60);
 }
-function clearResults() { $("results").innerHTML = ""; $("ready").hidden = true; $("ready").classList.remove("oops"); $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
+function clearResults() { $("ready").hidden = true; $("ready").classList.remove("oops"); $("altBox").hidden = true; $("sheetOut").hidden = true; $("sheetOut").innerHTML = ""; }
 $("file").tabIndex = -1; $("addFile").tabIndex = -1;   // the visible buttons take focus instead
 document.querySelectorAll('label[for="file"], label[for="addFile"]').forEach(l => {
   l.tabIndex = 0; l.setAttribute("role", "button");
@@ -1301,8 +1316,8 @@ async function goTo(time) {
   if (!media || media.kind !== "video") return;
   const tok = selTok;
   t = time; $("time").textContent = t.toFixed(2) + " s"; $("scrub").value = t; stash(); renderNamePreview();
-  if (MODE === "server") { $("preview").src = `/api/preview/${media.id}?t=${t}`; }
-  else { await seek(t); if (tok !== selTok) return; source = frameCanvas(); $("preview").src = previewOf(source); }
+  if (MODE === "server") { $("preview").src = `/api/preview/${media.id}?t=${t}`; schedulePreviews(); }
+  else { await seek(t); if (tok !== selTok) return; source = frameCanvas(); $("preview").src = previewOf(source); schedulePreviews(); }
 }
 let scrubTimer;
 $("scrub").addEventListener("input", e => { t = parseFloat(e.target.value); $("time").textContent = t.toFixed(2) + " s"; clearTimeout(scrubTimer); scrubTimer = setTimeout(() => goTo(t), 120); });
@@ -1407,27 +1422,113 @@ async function exportInBrowser(p, item, number, n) {
   }
   return out;
 }
-let RESULTS = [];
-function addResult(r) {
-  const i = RESULTS.push(r) - 1, finder = MODE === "server" && STATE.mac;
-  $("results").insertAdjacentHTML("beforeend", `<article class="result cm" data-tilt="4" style="--d:${Math.min(i, 8) * 40}ms">
-    <div class="thumb" data-zoom="${i}" title="Check at 100%"><img src="${r.url}" alt="${esc(r.preset)} result" loading="lazy"></div>
-    <div class="result-body"><h3>${esc(r.preset)}</h3>
-      <div class="meta" style="overflow-wrap:anywhere">${esc(r.file)}</div>
-      <div class="pills"><span class="pill">${r.width}×${r.height}</span><span class="pill">${fmtBytes(r.bytes)}</span>${r.quality ? `<span class="pill">Quality ${r.quality}</span>` : ""}${r.target_met === true ? `<span class="pill ok">Under target</span>` : ""}</div>
-      ${r.warnings.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
-      <div class="result-actions"><button class="mini pressable" data-zoom="${i}" type="button"><span class="inner"><svg class="i" style="width:14px;height:14px"><use href="#i-zoom"/></svg>100%</span></button>
-      ${finder ? `<button class="mini pressable" data-ql="${i}" type="button"><span class="inner">Quick Look</span></button><button class="mini pressable" data-reveal="${i}" type="button"><span class="inner">Show in Finder</span></button>` : ""}</div>
-    </div></article>`);
+/* ---------- live previews: one card per destination for the file on screen ----------
+   Each card is the real export, rendered but not saved, and it updates as you change destinations,
+   crops, the subject point or the video time. Cards are kept per file, so switching back is instant.
+   Export saves them and marks them Saved; changing anything after that turns a card back into a preview. */
+const ZOOM = new Map();
+let previewTimer = 0, previewChain = Promise.resolve();
+const cardsOf = it => it ? (it.previews ||= new Map()) : new Map();
+const itemNumber = it => startNumber() + (pro() ? Math.max(queue.indexOf(it), 0) : 0);
+function previewSig(p, it) {
+  const crop = isCrop(p);
+  return JSON.stringify([it.uid, it.kind === "video" ? +(+it.t || 0).toFixed(3) : 0, crop ? (it.custom[p.id] || it.focal) : null,
+    p.width, p.height, p.format, p.quality, p.max_bytes, p.widths || null]);
+}
+function schedulePreviews(delay = 280) { clearTimeout(previewTimer); previewTimer = setTimeout(updatePreviews, delay); }
+function setResults(c, res) {
+  for (const r of c.results || []) if (String(r.url).startsWith("blob:") && !res.some(x => x.url === r.url)) URL.revokeObjectURL(r.url);
+  c.results = res;
+}
+async function computePreview(p, it) {
+  if (MODE === "server") {
+    const info = it.info, box = it.custom[p.id] ? fractionsOf({[p.id]: it.custom[p.id]}, info.width, info.height)[p.id] : null;
+    const d = await api("/api/preview-result", {id: info.id, preset: p.id, focal: it.focal, t: it.kind === "video" ? it.t : null, box});
+    return d.results.map(r => ({preset: p.name, preset_id: p.id, tag: r.tag, format: r.format, width: r.width, height: r.height,
+      bytes: r.bytes, quality: r.quality, target_met: r.target_met, warnings: r.warnings, url: `/api/preview-result/${r.key}`,
+      ref: {id: info.id, preset: p.id, focal: it.focal, t: it.t, box, width: r.width}}));
+  }
+  const out = await exportInBrowser(p, it, itemNumber(it), naming());
+  return out.map(r => ({...r, preset_id: p.id, tag: p.widths ? `${r.width}w` : "", format: r.file.split(".").pop()}));
+}
+function updatePreviews() {
+  const it = queue[cur];
+  if (!it || !media || exporting || it.broken) { renderCards(); return; }
+  stash();
+  const cards = cardsOf(it);
+  for (const pid of [...cards.keys()]) if (!selected.has(pid)) cards.delete(pid);
+  for (const p of PRESETS.filter(x => selected.has(x.id))) {
+    const sig = previewSig(p, it);
+    let c = cards.get(p.id);
+    if (c && c.sig === sig && c.status !== "error") continue;
+    if (!c) { c = {pid: p.id, results: []}; cards.set(p.id, c); }
+    c.sig = sig; c.status = "pending"; c.saved = false;
+    const gen = c.gen = (c.gen || 0) + 1;
+    const run = () => computePreview(p, it)
+      .then(res => { if (c.gen === gen) { setResults(c, res); c.status = "ready"; } },
+            err => { if (c.gen === gen) { c.status = "error"; c.error = err.message; } })
+      .then(() => { if (queue[cur] === it) renderCards(); });
+    if (MODE === "server") run();
+    else previewChain = previewChain.then(() => (queue[cur] === it && c.gen === gen && media ? run() : null));   // the browser renders one at a time
+  }
+  renderCards();
+}
+function renderCards() {
+  const it = queue[cur], grid = $("results");
+  const cards = it && media && !it.broken ? PRESETS.filter(p => selected.has(p.id)).map(p => [p, cardsOf(it).get(p.id)]).filter(([, c]) => c) : [];
+  $("resultsHead").hidden = grid.hidden = !cards.length;
+  ZOOM.clear();
+  const keep = new Set(), finder = MODE === "server" && STATE.mac;
+  let i = 0;
+  for (const [p, c] of cards) {
+    const rows = c.results && c.results.length ? c.results : [null];
+    rows.forEach((r, j) => {
+      const key = `${p.id}:${j}`; keep.add(key);
+      let el = grid.querySelector(`[data-key="${CSS.escape(key)}"]`);
+      if (!el) { el = document.createElement("article"); el.className = "result cm"; el.dataset.tilt = "4"; el.dataset.key = key; el.style.setProperty("--d", `${Math.min(i, 8) * 40}ms`); }
+      grid.append(el);   // keeps the cards in destination order
+      i++;
+      el.classList.toggle("updating", c.status === "pending");
+      const zk = key; if (r) ZOOM.set(zk, r);
+      const name = r ? (c.saved && r.file ? r.file : fileName(stemOf(it.name), p.slug, r.format, naming(), itemNumber(it),
+        [it.kind === "video" ? `${(+it.t || 0).toFixed(2)}s` : "", r.tag].filter(Boolean).join("-"))) : "";
+      const status = c.status === "pending" ? `<span class="pill status">Updating…</span>`
+        : c.saved ? `<span class="pill saved">✓ ${MODE === "server" ? "Saved" : "Made"}</span>` : `<span class="pill status">Preview</span>`;
+      const html = !r ? `<div class="thumb"><span class="skel">${c.status === "error" ? "No preview" : "Rendering…"}</span></div>
+          <div class="result-body"><h3>${esc(p.name)}</h3>${c.status === "error" ? `<p class="warn">This preview didn't render: ${esc(c.error)}</p>` : `<div class="pills">${status}</div>`}</div>`
+        : `<div class="thumb" data-zoom="${zk}" title="Check at 100%"><img src="${r.url}" alt="${esc(p.name)} ${c.saved ? "export" : "preview"}"></div>
+          <div class="result-body"><h3>${esc(p.name)}${r.tag ? ` · ${r.tag}` : ""}</h3>
+            <div class="meta" style="overflow-wrap:anywhere">${esc(name)}</div>
+            <div class="pills">${status}<span class="pill">${r.width}×${r.height}</span><span class="pill">${fmtBytes(r.bytes)}</span>${r.quality ? `<span class="pill">Quality ${r.quality}</span>` : ""}${r.target_met === true ? `<span class="pill ok">Under target</span>` : ""}</div>
+            ${r.warnings.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
+            <div class="result-actions"><button class="mini pressable" data-zoom="${zk}" type="button"><span class="inner"><svg class="i" style="width:14px;height:14px"><use href="#i-zoom"/></svg>100%</span></button>
+            ${finder && c.saved && r.file ? `<button class="mini pressable" data-ql="${esc(r.file)}" type="button"><span class="inner">Quick Look</span></button><button class="mini pressable" data-reveal="${esc(r.file)}" type="button"><span class="inner">Show in Finder</span></button>` : ""}</div>
+          </div>`;
+      if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }   // only redraw what changed
+    });
+  }
+  for (const el of [...grid.children]) if (!keep.has(el.dataset.key)) el.remove();
+  if (cards.length) {
+    const allSaved = cards.every(([, c]) => c.saved), busy = cards.some(([, c]) => c.status === "pending");
+    $("resultsKicker").textContent = allSaved ? (MODE === "server" ? "Saved" : "Made") : "Preview";
+    $("resultsNote").textContent = allSaved ? (MODE === "server" ? "These files are in your export folder." : "Right-click a result to save it.")
+      : busy ? "Updating to match your changes…" : "Live preview of each file Export will make. Nothing is saved until you export.";
+  }
 }
 $("results").addEventListener("click", async e => {
   const z = e.target.closest("[data-zoom]"), q = e.target.closest("[data-ql]"), rv = e.target.closest("[data-reveal]");
   try {
-    if (z) openZoom(RESULTS[+z.dataset.zoom], z.closest(".result") && z.closest(".result").querySelector(".thumb img"));
-    else if (q) await api("/api/quicklook", {file: RESULTS[+q.dataset.ql].file});
-    else if (rv) await api("/api/reveal", {file: RESULTS[+rv.dataset.reveal].file});
+    if (z && ZOOM.get(z.dataset.zoom)) openZoom(ZOOM.get(z.dataset.zoom), z.closest(".result") && z.closest(".result").querySelector(".thumb img"));
+    else if (q) await api("/api/quicklook", {file: q.dataset.ql});
+    else if (rv) await api("/api/reveal", {file: rv.dataset.reveal});
   } catch (err) { toast(err.message); }
 });
+function markSaved(it, p, rows) {   // an export's files become that destination's card, marked Saved
+  const cards = cardsOf(it), c = cards.get(p.id) || {pid: p.id};
+  cards.set(p.id, c);
+  c.gen = (c.gen || 0) + 1; c.sig = previewSig(p, it); c.status = "ready"; c.saved = true;
+  setResults(c, rows);
+}
 let celebrated = false;
 function aptiState(el, state, ms) {
   if (!el) return;
@@ -1462,7 +1563,7 @@ function working(on) {
 }
 async function runExport() {
   if (!media || !selected.size || exporting) return;
-  $("err").textContent = ""; clearResults(); RESULTS = []; stash();
+  $("err").textContent = ""; clearResults(); stash();
   working(true);
   const list = PRESETS.filter(p => selected.has(p.id)), n = naming(), start = startNumber();
   const items = pro() ? [...queue] : [queue[cur]];
@@ -1486,15 +1587,23 @@ async function runExport() {
         }
         const w = info.width, h = info.height;
         folder = d.folder;
-        d.results.forEach(r => addResult({...r, url: `/api/file/${encodeURIComponent(r.file)}`,
-          ref: {id: info.id, preset: r.preset_id, focal: it.focal, t: it.t, box: fractionsOf(it.custom, w, h)[r.preset_id] || null, width: r.width}}));
+        for (const p of list) {
+          const rows = d.results.filter(r => r.preset_id === p.id).map(r => ({...r, tag: p.widths ? `${r.width}w` : "", format: r.file.split(".").pop(),
+            url: `/api/file/${encodeURIComponent(r.file)}`, ref: {id: info.id, preset: p.id, focal: it.focal, t: it.t, box: fractionsOf(it.custom, w, h)[p.id] || null, width: r.width}}));
+          if (rows.length) markSaved(it, p, rows);
+        }
+        if (it === queue[cur]) renderCards();
         count += d.results.length;
       } else {
         if (it.broken) { failed.push(it.name); continue; }
         if (queue[cur] !== it || !media) {
           if (!(await selectItem(queue.indexOf(it)))) { failed.push(it.name); continue; }
         }
-        for (const p of list) for (const r of await exportInBrowser(p, it, number, n)) { addResult(r); count++; }
+        for (const p of list) {
+          const rows = (await exportInBrowser(p, it, number, n)).map(r => ({...r, preset_id: p.id, tag: p.widths ? `${r.width}w` : "", format: r.file.split(".").pop()}));
+          markSaved(it, p, rows); count += rows.length;
+        }
+        renderCards();
       }
       it.done = true; renderTray();
     }
@@ -1507,7 +1616,7 @@ async function runExport() {
   } catch (e) { $("err").textContent = e.message; showOops(e.message); morphLabel("Export stopped", 1800); holdThenRestore(1800); }
   working(false);
   if (MODE === "browser" && queue[cur] !== keepItem && queue.includes(keepItem)) await selectItem(queue.indexOf(keepItem));
-  renderDests();
+  renderDests(); schedulePreviews(0);
 }
 $("exportBtn").addEventListener("click", runExport);
 
@@ -1688,7 +1797,7 @@ $("customForm").addEventListener("submit", async e => {
     forgetCrops(saved.id);   // an edited shape makes any placed crop for it wrong
     PRESETS = PRESETS.filter(p => p.id !== saved.id).concat(saved);
     toast(body.id ? "Preset updated" : `${saved.name} added to your destinations`);
-    resetCustomForm(); renderDests(); drawCrops();
+    resetCustomForm(); renderDests(); drawCrops(); schedulePreviews(0);
   } catch (err) { $("cErr").textContent = err.message; }
 });
 $("customList").addEventListener("click", async e => {
@@ -1702,7 +1811,7 @@ $("customList").addEventListener("click", async e => {
     try {
       if (MODE === "server") await api(`/api/custom-presets/${encodeURIComponent(del.dataset.del)}`, null, "DELETE");
       PRESETS = PRESETS.filter(p => p.id !== del.dataset.del); selected.delete(del.dataset.del); forgetCrops(del.dataset.del);
-      renderDests(); drawCrops();
+      renderDests(); drawCrops(); schedulePreviews(0);
     } catch (err) { toast(err.message); }
   }
 });
@@ -1843,9 +1952,9 @@ function exportMenu(x, y) {
     if (STATE.mac) items.push({label: "Choose folder…", action: () => $("chooseFolder").click()});
   } else items.push({label: "This page (right-click a result to save it)", checked: true});
   items.push("-", {heading: "File names"},
-    {label: "Original file name", checked: !seo, action: () => { ["nLocation", "nDescriptor", "nClient", "nShot"].forEach(id => $(id).value = ""); renderNamePreview(); toast("Exports use each file's original name"); }},
+    {label: "Original file name", checked: !seo, action: () => { ["nLocation", "nDescriptor", "nClient", "nShot"].forEach(id => $(id).value = ""); namesChanged(); toast("Exports use each file's original name"); }},
     {label: "SEO names…", checked: seo, action: () => { if ($("namingFields").hidden) $("namingToggle").click(); $("nLocation").focus(); }},
-    {label: "Number the files", checked: $("nNumbered").checked, action: () => { $("nNumbered").checked = !$("nNumbered").checked; renderNamePreview(); }},
+    {label: "Number the files", checked: $("nNumbered").checked, action: () => { $("nNumbered").checked = !$("nNumbered").checked; namesChanged(); }},
     "-", {label: "Export settings…", action: () => show("settings")});
   openMenu(items, x, y, $("exportBtn"));
 }

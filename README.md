@@ -14,7 +14,7 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 62 tests for the engine, the server, and the new features |
+| `tests/` | 64 tests for the engine, the server, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source
