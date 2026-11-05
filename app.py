@@ -29,8 +29,9 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageOps
 from pydantic import BaseModel
 
-from aptus_engine import (Naming, contact_sheet, export_image, export_set, file_name, grab_frame,
-                          limit_warnings, load_limits, load_presets, probe, sharp_frames, slugify)
+from aptus_engine import (Naming, Settings, contact_sheet, export_image, export_set, file_name, grab_frame,
+                          limit_warnings, load_destinations, load_limits, load_presets, optimize_image, prepared,
+                          probe, sharp_frames, slugify)
 from aptus_engine import presets as presets_mod
 from aptus_engine import images as images_mod
 from aptus_engine.images import render_image
@@ -70,6 +71,7 @@ DEFAULT_OUT = Path.home() / "Desktop" / "Aptus Exports"
 DEFAULT_SETTINGS = {
     "export_folder": "",          # empty = DEFAULT_OUT
     "last_presets": ["web-hero", "ig-feed"],
+    "last_optimize": ["web-content"],
     "naming": {"location": "", "descriptor": "", "client": "", "shot": "", "numbered": True},
     "check_updates": True,
 }
@@ -111,12 +113,13 @@ def cache_path() -> Path:
 
 BUILTIN = load_presets(presets_mod.active_presets_path(cache=cache_path()))
 LIMITS = load_limits(presets_mod.active_presets_path(cache=cache_path()))
+DESTINATIONS = load_destinations(presets_mod.active_presets_path(cache=cache_path()))
 
 
 def reload_builtin() -> None:
-    global BUILTIN, LIMITS
+    global BUILTIN, LIMITS, DESTINATIONS
     path = presets_mod.active_presets_path(cache=cache_path())
-    BUILTIN, LIMITS = load_presets(path), load_limits(path)
+    BUILTIN, LIMITS, DESTINATIONS = load_presets(path), load_limits(path), load_destinations(path)
 
 
 def custom_presets():
@@ -291,6 +294,7 @@ def state():
 class SettingsPatch(BaseModel):
     export_folder: str | None = None
     last_presets: list[str] | None = None
+    last_optimize: list[str] | None = None
     naming: dict | None = None
     check_updates: bool | None = None
 
@@ -312,6 +316,8 @@ def save_settings(patch: SettingsPatch):
         s["export_folder"] = folder
     if patch.last_presets is not None:
         s["last_presets"] = [x for x in patch.last_presets if isinstance(x, str)][:40]
+    if patch.last_optimize is not None:
+        s["last_optimize"] = [x for x in patch.last_optimize if isinstance(x, str)][:40]
     if patch.naming is not None:
         n = s["naming"]
         for k in ("location", "descriptor", "client", "shot"):
@@ -474,12 +480,16 @@ async def upload(file: UploadFile = File(...)):
 
 
 @app.get("/api/preview/{mid}")
-def preview(mid: str, t: float = 0.0):
+def preview(mid: str, t: float = 0.0, w: int = 1400):
+    """A JPEG preview of a file. w sets the largest width (64-1400), so table thumbnails stay light."""
     m = media(mid)
+    w = min(max(w, 64), 1400)
     if m["kind"] == "video":
-        return jpeg_response(grab_frame(m["path"], t, max_width=1400))
+        return jpeg_response(grab_frame(m["path"], t, max_width=w), max_width=w)
     with Image.open(m["path"]) as im:
-        return jpeg_response(ImageOps.exif_transpose(im))
+        if w < 1400:
+            im.draft("RGB", (w * 2, w * 2))   # JPEGs decode at a reduced size, which is much faster
+        return jpeg_response(ImageOps.exif_transpose(im), max_width=w)
 
 
 _SOURCES: "OrderedDict[tuple, Image.Image]" = None
@@ -651,6 +661,132 @@ def reference(req: ReferenceRequest):
         work = images_mod._prepare_mode(work, "jpg")
     buf = io.BytesIO()
     work.save(buf, "PNG", compress_level=1)   # lossless and quick; this file is only for looking
+    return Response(buf.getvalue(), media_type="image/png")
+
+
+# ---------- Optimize: whole batches for a destination, never cropped ----------
+
+FREE_BATCH = 10                       # Free optimizes up to this many files per batch
+_BATCHES: dict[str, set[str]] = {}    # batch id -> file ids seen, for the Free limit
+_BATCH_ORDER: list[str] = []
+
+
+@app.get("/api/optimize/destinations")
+def optimize_destinations():
+    return [d.to_dict() for d in DESTINATIONS.values()]
+
+
+class OptimizeRequest(BaseModel):
+    id: str
+    destinations: list[str]
+    settings: dict = {}                  # inspector changes; see aptus_engine.optimize.Settings
+    naming: dict | None = None
+    number: int | None = None
+    batch_id: str | None = None
+    batch_total: int = 1
+
+
+def _settings(raw: dict) -> Settings:
+    s = Settings()
+    if raw.get("format"):
+        s.format = str(raw["format"])
+    if raw.get("no_max"):
+        s.no_max = True
+    elif raw.get("max_kb"):
+        s.max_bytes = int(float(raw["max_kb"]) * 1000)
+    if raw.get("long_edge"):
+        s.long_edge = int(raw["long_edge"])
+    if raw.get("allow_downscale") is not None:
+        s.allow_downscale = bool(raw["allow_downscale"])
+    if raw.get("sharpen"):
+        s.sharpen = str(raw["sharpen"])
+    if raw.get("keep") is not None:
+        s.keep = tuple(str(k) for k in raw["keep"])
+    s.reduce_colors = bool(raw.get("reduce_colors"))
+    return s
+
+
+def _check_free_batch(req: OptimizeRequest) -> None:
+    if license_state()["pro"]:
+        return
+    msg = f"Free optimizes up to {FREE_BATCH} files at a time. Pro optimizes the whole batch."
+    if req.batch_total > FREE_BATCH:
+        raise HTTPException(402, msg)
+    if req.batch_id:
+        seen = _BATCHES.setdefault(req.batch_id, set())
+        if req.batch_id not in _BATCH_ORDER:
+            _BATCH_ORDER.append(req.batch_id)
+            while len(_BATCH_ORDER) > 50:
+                _BATCHES.pop(_BATCH_ORDER.pop(0), None)
+        if req.id not in seen and len(seen) >= FREE_BATCH:
+            raise HTTPException(402, msg)
+        seen.add(req.id)
+
+
+@app.post("/api/optimize")
+def optimize(req: OptimizeRequest):
+    m = media(req.id)
+    if m["kind"] != "image":
+        raise HTTPException(400, "Optimize works on photos. To use a video, grab a frame on Home first.")
+    unknown = [d for d in req.destinations if d not in DESTINATIONS]
+    if unknown or not req.destinations:
+        raise HTTPException(400, f"Unknown or missing destinations: {unknown}")
+    if len(req.destinations) > 1:
+        need_pro("Optimizing for several destinations at once")
+    _check_free_batch(req)
+    try:
+        settings = _settings(req.settings)
+        dests = [settings.apply(DESTINATIONS[d]) for d in req.destinations]
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    naming = Naming(**{k: v for k, v in (req.naming or {}).items()
+                       if k in ("location", "descriptor", "client", "shot", "numbered")})
+    number = req.number if req.number is not None else 1
+    src, _ = source_image(m, None)
+    src_bytes = m["path"].stat().st_size
+    base = prepared(src)
+    folder = out_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    results = []
+    for d in dests:
+        r = optimize_image(src, d, src_bytes, reduce_colors=settings.reduce_colors, base=base)
+        path = unique_path(folder / file_name(m["stem"], d.slug, r.format, naming, number))
+        if r.data is None:
+            shutil.copyfile(m["path"], path)
+        else:
+            path.write_bytes(r.data)
+        notes = r.notes + (limit_warnings(r.nbytes, LIMITS) if d.group == "Website" else [])
+        results.append({"destination": d.name, "destination_id": d.id, "file": path.name, "format": r.format,
+                        "width": r.width, "height": r.height, "bytes": r.nbytes, "quality": r.quality,
+                        "state": r.state, "notes": notes, "src_bytes": src_bytes,
+                        "src_width": base.width, "src_height": base.height, "max_bytes": d.cap})
+    s = read_settings()
+    s["last_optimize"] = req.destinations
+    if naming.active:
+        s["naming"] = {"location": naming.location, "descriptor": naming.descriptor,
+                       "client": naming.client, "shot": naming.shot, "numbered": naming.numbered}
+    write_settings(s)
+    return {"folder": str(folder), "results": results}
+
+
+class OptimizeReference(BaseModel):
+    id: str
+    width: int
+    height: int
+
+
+@app.post("/api/optimize/reference")
+def optimize_reference(req: OptimizeReference):
+    """The same size as an Optimize result, saved losslessly, for the before/after check at 100%."""
+    m = media(req.id)
+    if not (1 <= req.width <= 12000 and 1 <= req.height <= 12000):
+        raise HTTPException(400, "That size is out of range.")
+    src, _ = source_image(m, None)
+    work = prepared(src)
+    if work.size != (req.width, req.height):
+        work = work.resize((req.width, req.height), Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    work.save(buf, "PNG", compress_level=1)
     return Response(buf.getvalue(), media_type="image/png")
 
 
