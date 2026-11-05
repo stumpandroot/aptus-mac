@@ -1,20 +1,20 @@
 # Aptus: Resize & Frame Grab
 
-Aptus fits photos and video frames to wherever they're going: website heroes, Instagram, LinkedIn, YouTube thumbnails, and your own sizes. This folder holds the engine, the interface, and everything needed to build the signed Mac app.
+Aptus fits photos and video frames to wherever they're going: website heroes, Instagram, LinkedIn, YouTube thumbnails, and your own sizes. Its Optimize page makes whole batches ready for a website, email, social post, or client proof without cropping. This folder holds the engine, the interface, and everything needed to build the signed Mac app.
 
 ## What's here
 
 | Path | What it is |
 | --- | --- |
-| `presets.json` | The built-in destinations and upload limits. Edit sizes here; no code changes needed. |
-| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), file names (`naming.py`), video frames (`video.py`) |
+| `presets.json` | The built-in Resize presets (`presets`), upload limits (`limits`), and Optimize destinations (`optimize`). Edit sizes here; no code changes needed. |
+| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), Optimize batches (`optimize.py`), file names (`naming.py`), video frames (`video.py`) |
 | `app.py` | The local engine server the interface talks to |
 | `static/index.html` | The interface. The same file runs in the Mac app and as the browser preview. |
 | `greenlaunch_license.py` | The GreenLaunch license check (a copy of the one in the license service; keep them in sync) |
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 64 tests for the engine, the server, and the new features |
+| `tests/` | 96 tests for the engine, the server, Optimize, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source
@@ -31,6 +31,7 @@ Running from source counts as Pro, so every feature is on for testing. Set `APTU
 - **Batches:** drop several photos, a whole folder, or videos. Click a thumbnail to frame that file; files you don't touch use a centered crop. `[` and `]` step through them.
 - **Crops you place:** every exact-size destination draws its own frame. Drag a frame to move it, drag a corner to crop tighter, or tap the subject to move every frame at once.
 - **Size targets:** encodes at the preset quality and, if the file is over its target, finds the highest quality that fits (lowest allowed: 30). If even that's too big, it says so.
+- **Optimize:** drop a batch or a folder, pick a destination, and every photo is resized by its long edge or width, converted, and compressed under the destination's max size. Nothing is cropped. Optimize won't go below quality 65 (50 for AVIF); when that still doesn't fit, it steps the dimensions down, never below the destination's minimum. Social destinations warn when a platform will crop a photo's shape. A file that already meets every rule is copied unchanged. GPS and camera serial numbers are always removed; copyright, credit, and capture date can be kept. Every photo gets one result: Done, Already fit, Resized to fit, Needs attention, or Failed, and **Retry** reruns only the exceptions.
 - **Responsive size set:** one WebP each at 640, 1024, 1600 and 2560 wide for a `srcset`. Widths wider than the photo are skipped, never enlarged.
 - **SEO file names:** fill in location, what's in it, client, and shot type to get names like `lancaster-pa-barn-studio-smith-builders-wide-01-hero.webp`, following the Stump & Root SEO image naming guide. Aptus also suggests alt text under 125 characters.
 - **Upload limits:** warns when a file is too big for Webflow's 4 MB image limit (listed under `limits` in `presets.json`).
@@ -47,7 +48,7 @@ Dragging an export out of the window into another app isn't supported; use **Sho
 
 | Free | Pro |
 | --- | --- |
-| One file to one destination at a time, built-in presets, single frame grabs, sharp-frame suggestions, SEO names, the 100% check | Adds batches, several destinations at once, your own presets, interval grabs and contact sheets |
+| One file to one destination at a time, built-in presets, single frame grabs, sharp-frame suggestions, SEO names, the 100% check, Optimize for up to 10 photos and one destination at a time | Adds batches, several destinations at once, your own presets, interval grabs and contact sheets, and Optimize for any number of photos and several destinations |
 
 The server enforces these limits, not just the interface.
 

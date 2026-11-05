@@ -262,6 +262,47 @@ h2{font-size:17px;line-height:1.25;letter-spacing:-.01em;font-weight:600}
 @media (prefers-reduced-motion:reduce){.cm{transform:none!important}}
 
 /* ---- presets, settings ---- */
+/* ---- Optimize: one row per file; no row animation, the table appears at once ---- */
+.opt-summary{font-family:var(--mono);font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center;min-width:0}
+.opt-summary strong{color:var(--ink);font-weight:600}
+.opt-summary button{font:inherit;font-weight:600;color:var(--butter-text);text-decoration:underline;text-underline-offset:3px;min-height:26px;padding:0 2px;border-radius:4px}
+#optLoaded{min-width:0}
+.opt-table-wrap{overflow-x:auto;border-top:1px solid var(--hairline);margin:0 -14px -14px;border-radius:0 0 var(--r-lg) var(--r-lg)}
+.opt-table{min-width:600px}
+.opt-table td{vertical-align:middle;padding-top:10px;padding-bottom:10px}
+.opt-table th:first-child,.opt-table td:first-child{padding-left:18px;width:34%;min-width:200px}
+.opt-table th:nth-child(2),.opt-table td:nth-child(2){width:110px;white-space:nowrap}
+.opt-table td:nth-child(3){font-family:var(--font);font-size:12.5px}
+.opt-cell-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
+.opt-file{display:flex;align-items:center;gap:10px;min-width:0}
+.opt-file img,.opt-file .ph{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;background:var(--bar);box-shadow:var(--well)}
+.opt-file .nm{min-width:0;overflow-wrap:anywhere;font-size:13px;line-height:1.3}
+.opt-file .x{flex:none;width:26px;height:26px;border-radius:50%;color:var(--text3);font-size:16px;line-height:1}
+.opt-file .x:hover{background:var(--hover);color:var(--ink)}
+.opt-res{display:block;width:100%;text-align:left;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);padding:3px 6px;margin:0 -6px;border-radius:6px}
+.opt-res:hover{background:var(--hover)}
+.opt-res:focus-visible{outline:2px solid var(--sage-text);outline-offset:1px}
+.opt-res b{font-family:var(--font);font-weight:600;color:var(--text2);margin-right:6px}
+.opt-notes{display:grid;gap:4px;margin-top:4px}
+.opt-notes .warn-inline{margin-top:0;font-size:12px;line-height:1.4}
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--mono);font-size:11.5px;color:var(--ink)}
+.st::before{content:"";display:inline-grid;place-items:center;flex:none;width:16px;height:16px;box-sizing:border-box;border-radius:50%;font-family:var(--font);font-size:10.5px;font-weight:700}
+.st-ok::before{content:"✓";background:var(--sage);color:#26352E}
+.st-attn::before{content:"!";background:var(--butter-text);color:var(--reader)}
+.st-fail::before{content:"!";background:var(--system-red);color:#fff}
+.st-wait{color:var(--text3)}
+.st-wait::before{border:1.5px solid var(--outline)}
+.st-run::before{border:2px solid var(--sage-text)}
+tr.opt-hide{display:none}
+@media (max-width:700px){   /* phones: each file becomes a stacked card instead of a wide row */
+  .opt-table{min-width:0}
+  .opt-table thead{display:none}
+  .opt-table tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 16px;border-top:1px solid var(--hairline)}
+  .opt-table tr.opt-hide{display:none}
+  .opt-table td,.opt-table th:first-child,.opt-table td:first-child{display:block;border:0;padding:0;width:auto;min-width:0}
+  .opt-table td:nth-child(2){align-self:center;text-align:right;width:auto}
+  .opt-table td:nth-child(3){grid-column:1/-1}
+}
 .presets-page{max-width:900px;display:grid;gap:18px}
 .table-wrap{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-lg);box-shadow:var(--shadow-low);overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
@@ -379,7 +420,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
   .page{padding:14px 16px calc(var(--nav-h) + 44px)}
   /* scroll edge effect: content fades out before it reaches the floating tab bar */
   body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + 44px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--paper) 45%,transparent);pointer-events:none;z-index:19}
-  .tabbar{position:fixed;z-index:20;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));height:var(--nav-h);border-radius:999px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:5px}
+  .tabbar{position:fixed;z-index:20;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));height:var(--nav-h);border-radius:999px;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:5px}
   .tab{position:relative;border-radius:999px;font-size:11px;font-weight:500;color:var(--ink);transition:background-color var(--touch) ease-out}
   .tab .inner{flex-direction:column;gap:1px}
   .tab.selected{background:var(--reader);box-shadow:inset 0 0 0 1px var(--hairline);font-weight:600}
@@ -506,6 +547,8 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
     <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
     <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-optimize" viewBox="0 0 24 24"><path d="M4.5 9.5h5v-5M4 4l5.5 5.5M19.5 14.5h-5v5M20 20l-5.5-5.5"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4.5 7.5 12 13l7.5-5.5"/></symbol>
   </defs>
 </svg>
 
@@ -518,6 +561,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
     <nav class="nav" aria-label="Sections">
       <span class="nav-pill" aria-hidden="true"></span>
       <button class="nav-link pressable selected" data-view="home" id="nav-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
+      <button class="nav-link pressable" data-view="optimize" id="nav-optimize"><span class="inner"><svg class="i"><use href="#i-optimize"/></svg>Optimize</span></button>
       <button class="nav-link pressable" data-view="presets" id="nav-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
       <button class="nav-link pressable" data-view="settings" id="nav-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
     </nav>
@@ -646,10 +690,86 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
       </div>
     </section>
 
+    <section class="page" id="page-optimize" aria-labelledby="optTitle">
+      <div class="home">
+        <div class="work">
+          <div class="hero">
+            <span class="overline">02 / Optimize</span>
+            <h1 id="optTitle">Ready for <span class="accent">wherever it's posted.</span></h1>
+            <p class="sub">Drop a batch and pick where it's going. Aptus sizes, converts and compresses every file to fit, and never crops.</p>
+          </div>
+
+          <div class="stage-card">
+            <div class="empty" id="optEmpty">
+              <span class="apti" aria-hidden="true"></span>
+              <strong id="optEmptyTitle">Nothing to optimize yet</strong>
+              <p id="optEmptyText">Drop photos or a folder anywhere on this window, or choose files.</p>
+              <div class="row" id="optEmptyActions">
+                <label class="btn btn-dark pressable" for="optFile"><span class="inner"><svg class="i"><use href="#i-upload"/></svg>Choose files</span></label>
+              </div>
+            </div>
+            <input type="file" id="optFile" class="sr-only" accept="image/*,.heic" multiple>
+
+            <div id="optLoaded" hidden>
+              <div class="stage-head">
+                <svg class="i" style="color:var(--sage-text)"><use href="#i-optimize"/></svg>
+                <span class="opt-summary" id="optSummary" role="status" aria-live="polite"></span>
+                <span class="grow"></span>
+                <button class="btn btn-soft btn-sm pressable" id="optStop" type="button" hidden><span class="inner">Stop</span></button>
+                <label class="btn btn-soft btn-sm pressable" for="optAdd" id="optAddBtn"><span class="inner">Add files</span></label>
+                <button class="btn btn-soft btn-sm pressable" id="optClear" type="button"><span class="inner">Start over</span></button>
+              </div>
+              <input type="file" id="optAdd" class="sr-only" accept="image/*,.heic" multiple>
+              <div class="opt-table-wrap">
+                <table class="opt-table">
+                  <thead><tr><th>File</th><th>Original</th><th>Result</th></tr></thead>
+                  <tbody id="optRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="ready" id="optReady" hidden>
+            <span class="apti" id="optReadyApti" aria-hidden="true"></span>
+            <div class="grow"><span class="overline" id="optReadyKicker">Done</span><h2 id="optReadyTitle"></h2><p id="optReadyWhere"></p>
+              <div class="ready-actions" id="optReadyActions"></div></div>
+          </div>
+        </div>
+
+        <aside class="inspector" aria-label="Optimize destinations and settings">
+          <div class="kicker">Destinations</div>
+          <p class="export-note" id="optFreeNote" hidden style="text-align:left">Free optimizes up to 10 files for one destination at a time. <button class="toggle-btn" data-view="settings" type="button">Get Pro</button></p>
+          <div id="optDests"></div>
+
+          <div class="section">
+            <div class="section-head"><h3>Settings</h3><button class="toggle-btn" id="optReset" type="button">Use the destination's</button></div>
+            <div class="fields">
+              <label class="field">Max size (KB)<input id="oMax" type="number" min="10" step="10" inputmode="numeric"></label>
+              <label class="field">Long edge (px)<input id="oEdge" type="number" min="16" max="12000" step="10" inputmode="numeric"></label>
+              <label class="field">Format<select id="oFormat"><option value="">Destination's</option><option value="webp">WebP</option><option value="jpg">JPEG</option><option value="avif">AVIF</option><option value="png">PNG</option></select></label>
+              <label class="field">Sharpen<select id="oSharpen"><option value="">Destination's</option><option value="off">Off</option><option value="low">Low</option><option value="medium">Medium</option></select></label>
+            </div>
+            <p class="meta" id="optMultiNote" hidden>Each destination uses its own size and format. Pick one destination to change them.</p>
+            <div>
+              <label class="check"><input type="checkbox" id="oDownscale" checked>Allow smaller dimensions</label>
+              <label class="check"><input type="checkbox" id="oKeepCopy">Keep copyright and credit</label>
+              <label class="check"><input type="checkbox" id="oKeepDate">Keep capture date</label>
+              <label class="check" id="oReduceRow" hidden><input type="checkbox" id="oReduce">Reduce colors (PNG)</label>
+            </div>
+            <p class="meta">GPS location and camera serial numbers are always removed.</p>
+          </div>
+
+          <button class="btn btn-dark export pressable" id="optBtn" type="button"><span class="inner"><span class="apti working" id="optApti" hidden aria-hidden="true"></span><span id="optLabel">Optimize</span></span></button>
+          <p class="export-note" id="optNote"></p>
+          <p class="error" id="optErr" role="alert"></p>
+        </aside>
+      </div>
+    </section>
+
     <section class="page" id="page-presets" aria-labelledby="presetsTitle">
       <div class="presets-page">
         <div class="hero">
-          <span class="overline">02 / Destinations</span>
+          <span class="overline">03 / Destinations</span>
           <h1 id="presetsTitle">Presets</h1>
           <p class="sub">Each destination sets the size, crop shape, format, and a file-size target. Aptus searches for the highest quality that fits the target.</p>
         </div>
@@ -658,6 +778,13 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
           <tbody id="presetRows"></tbody>
         </table></div>
         <p class="meta" id="limitNote"></p>
+
+        <div class="kicker" id="optPresetsKicker">Optimize destinations</div>
+        <p class="sub" style="font-size:13.5px">Optimize never crops. Each destination sets the longest side or width, the format, and a max size. When the lowest quality Aptus uses still doesn't fit, it steps the dimensions down instead.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Destination</th><th>Size</th><th>Format</th><th>Max size</th><th>Basis</th></tr></thead>
+          <tbody id="optPresetRows"></tbody>
+        </table></div>
 
         <div class="card" id="customCard">
           <div class="section-head"><h2>My presets <span class="pro pro-only">Pro</span></h2></div>
@@ -681,7 +808,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
     <section class="page" id="page-settings" aria-labelledby="settingsTitle">
       <div class="presets-page">
         <div class="hero">
-          <span class="overline">03 / Exports, license, updates</span>
+          <span class="overline">04 / Exports, license, updates</span>
           <h1 id="settingsTitle">Settings</h1>
           <p class="sub" id="settingsSub">Where exports are saved, your license, and preset updates.</p>
         </div>
@@ -740,6 +867,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
 <nav class="tabbar glass" aria-label="Sections">
   <span class="tab-pill" aria-hidden="true"></span>
   <button class="tab pressable selected" data-view="home" id="tab-home"><span class="inner"><svg class="i"><use href="#i-home"/></svg>Home</span></button>
+  <button class="tab pressable" data-view="optimize" id="tab-optimize"><span class="inner"><svg class="i"><use href="#i-optimize"/></svg>Optimize</span></button>
   <button class="tab pressable" data-view="presets" id="tab-presets"><span class="inner"><svg class="i"><use href="#i-sliders"/></svg>Presets</span></button>
   <button class="tab pressable" data-view="settings" id="tab-settings"><span class="inner"><svg class="i"><use href="#i-gear"/></svg>Settings</span></button>
 </nav>
@@ -767,8 +895,8 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
 /* ---------- data ---------- */
 // Same as presets.json. In the Mac app the server's copy (with any online update and your own presets) replaces this one.
 let PRESETS = [
-  {id:"web-hero",group:"Website",name:"Hero image",width:2560,height:null,format:"webp",quality:82,max_bytes:1000000,basis:"Recommendation",slug:"hero"},
-  {id:"web-content",group:"Website",name:"Content image",width:1600,height:null,format:"webp",quality:80,max_bytes:500000,basis:"Recommendation",slug:"content"},
+  {id:"web-hero",group:"Website",name:"Hero image",width:2400,height:null,format:"webp",quality:82,max_bytes:300000,basis:"Matches Optimize's hero budget",slug:"hero"},
+  {id:"web-content",group:"Website",name:"Content image",width:1600,height:null,format:"webp",quality:80,max_bytes:200000,basis:"Matches Optimize's 200 KB budget",slug:"content"},
   {id:"web-set",group:"Website",name:"Responsive size set (640–2560)",width:null,height:null,format:"webp",quality:80,max_bytes:500000,basis:"One file per width for srcset",slug:"",widths:[640,1024,1600,2560]},
   {id:"web-og",group:"Website",name:"Link preview (Open Graph)",width:1200,height:627,format:"jpg",quality:85,max_bytes:1000000,basis:"LinkedIn link card size",slug:"og-image"},
   {id:"ig-feed",group:"Social",name:"Instagram feed (3:4)",width:1080,height:1440,format:"jpg",quality:90,max_bytes:null,basis:"Matches the profile grid",slug:"instagram-3x4"},
@@ -777,7 +905,7 @@ let PRESETS = [
   {id:"li-square",group:"Social",name:"LinkedIn square",width:1200,height:1200,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-square"},
   {id:"li-landscape",group:"Social",name:"LinkedIn landscape",width:1200,height:627,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-landscape"},
   {id:"li-vertical",group:"Social",name:"LinkedIn vertical",width:1200,height:1500,format:"jpg",quality:90,max_bytes:null,basis:"Platform spec",slug:"linkedin-vertical"},
-  {id:"yt-thumb",group:"Social",name:"YouTube thumbnail",width:1280,height:720,format:"jpg",quality:90,max_bytes:2000000,basis:"YouTube 2 MB limit",slug:"youtube-thumbnail"},
+  {id:"yt-thumb",group:"Social",name:"YouTube thumbnail",width:1920,height:1080,format:"jpg",quality:90,max_bytes:2000000,basis:"Matches 1080p video frames without enlarging them; YouTube accepts up to 3840×2160 and 2 MB from phones",slug:"youtube-thumbnail"},
   {id:"portfolio",group:"Portfolio",name:"Portfolio still (full resolution)",width:null,height:null,format:"png",quality:null,max_bytes:null,basis:"Recommendation",slug:"portfolio"},
 ];
 let LIMITS = [{id:"webflow-image", name:"Webflow image upload", max_bytes:4000000}];
@@ -794,7 +922,7 @@ const dimsOf = p => p.widths ? p.widths.join(", ") + " wide" : p.width && p.heig
 const tilde = s => String(s).replace(/^\/Users\/[^/]+/, "~");
 
 let MODE = "browser";          // "server" when the local Aptus engine answers, else the browser does the work
-let STATE = {mac: false, license: {pro: true, source: "preview"}, settings: {}, export_folder: "", presets_version: 2};
+let STATE = {mac: false, license: {pro: true, source: "preview"}, settings: {}, export_folder: "", presets_version: 3};
 const pro = () => !!STATE.license.pro;
 let queue = [];                // files in this batch: {file, name, sample, info, focal, custom, t, thumb, done}
 let cur = -1;                  // index of the file on screen
@@ -818,7 +946,7 @@ document.addEventListener("pointerup", release); document.addEventListener("poin
 
 /* Pages slide in the direction you travel: down the sidebar slides up, back slides down.
    Keyboard shortcuts switch instantly (the family rule for keyboard-initiated actions). */
-const VIEWS = ["home", "presets", "settings"];
+const VIEWS = ["home", "optimize", "presets", "settings"];
 let curView = "home";
 function movePills(instant) {
   const link = document.querySelector(`.nav-link[data-view="${curView}"]`), pill = document.querySelector(".nav-pill");
@@ -1658,7 +1786,7 @@ async function renderBefore(r) {
   let url;
   if (r.refCanvas) url = URL.createObjectURL(await toBlob(r.refCanvas, "image/png"));
   else {
-    const res = await fetch("/api/reference", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(r.ref)});
+    const res = await fetch(r.refUrl || "/api/reference", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(r.ref)});
     if (!res.ok) throw new Error("Couldn't render the original for comparison.");
     url = URL.createObjectURL(await res.blob());
   }
@@ -1709,7 +1837,8 @@ addEventListener("keydown", e => {
     return;
   }
   const mod = e.metaKey || e.ctrlKey;
-  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $("file").click(); }
+  if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $(curView === "optimize" ? "optFile" : "file").click(); }
+  else if (mod && e.key.toLowerCase() === "e" && curView === "optimize") { e.preventDefault(); runOptimize(); }
   else if (mod && e.key.toLowerCase() === "e") { e.preventDefault(); show("home", {instant: true}); runExport(); }
   else if (mod && e.key === ",") { e.preventDefault(); show("settings", {instant: true}); }
   else if (!typing && !mod && !exporting && (e.key === "[" || e.key === "]") && queue.length > 1) {
@@ -1732,7 +1861,12 @@ function closeDrop(dropped) {
     openDrop.t = setTimeout(() => { d.hidden = true; d.classList.remove("closing"); a.classList.remove("cropping"); }, 150);
   }, dropped && !RM.matches ? 220 : 0);
 }
-addEventListener("dragenter", e => { if (![...e.dataTransfer.types].includes("Files")) return; e.preventDefault(); depth++; $("dropTitle").textContent = media ? "Drop to add to this batch" : "Drop it here to start fitting"; openDrop(); });
+addEventListener("dragenter", e => {
+  if (![...e.dataTransfer.types].includes("Files")) return; e.preventDefault(); depth++;
+  $("dropTitle").textContent = curView === "optimize" ? (optQueue.length ? "Drop to add to this batch" : "Drop it here to optimize")
+    : media ? "Drop to add to this batch" : "Drop it here to start fitting";
+  openDrop();
+});
 addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; closeDrop(false); } });
 addEventListener("dragover", e => e.preventDefault());
 function readEntry(entry) {   // walks a dropped folder (and its subfolders) for files
@@ -1753,7 +1887,8 @@ addEventListener("drop", async e => {
   const entries = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
   let files = entries.length ? (await Promise.all(entries.map(readEntry))).flat() : [...e.dataTransfer.files];
   files = files.filter(f => !f.name.startsWith(".")).sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
-  if (files.length) addFiles(files, {replace: !media});
+  if (!files.length) return;
+  if (curView === "optimize") optAddFiles(files); else addFiles(files, {replace: !media});
 });
 
 /* ---------- sample photo: the barn studio illustration ---------- */
@@ -1845,7 +1980,7 @@ function renderSettings() {
 async function refreshState() {
   if (MODE !== "server") return;
   STATE = await api("/api/state"); LIMITS = STATE.limits || LIMITS;
-  renderSettings(); renderDests();
+  renderSettings(); renderDests(); renderOptButton();
 }
 async function saveSettings(patch) { STATE = await api("/api/settings", patch); renderSettings(); renderDests(); }
 $("chooseFolder").addEventListener("click", async () => {
@@ -1859,7 +1994,7 @@ $("checkNow").addEventListener("click", async () => {
   try {
     const d = await api("/api/presets/update", {});
     toast(d.status === "updated" ? `Presets updated to version ${d.presets_version}` : d.status === "current" ? "Presets are up to date" : "Couldn't check right now. Your presets are unchanged.");
-    if (d.status === "updated") { PRESETS = await api("/api/presets"); await refreshState(); drawCrops(); }
+    if (d.status === "updated") { PRESETS = await api("/api/presets"); await refreshState(); drawCrops(); await loadDestinations(); }
   } catch (e) { toast(e.message); }
 });
 $("licForm").addEventListener("submit", async e => {
@@ -1990,6 +2125,309 @@ function trackEyes() {
   });
 }
 
+/* ---------- Optimize: whole batches for a destination, never cropped ---------- */
+const FREE_BATCH = 10;
+let DESTS = [];                 // Optimize destinations, from the engine
+const optSel = new Set(["web-content"]);
+let optQueue = [];              // {uid, file, name, size, info, up, state, results, notes, broken}
+let optRunning = false, optStopped = false, optFilter = false, optFolder = "", optUid = 0;
+const optDirty = new Set();     // toggles the person changed; untouched ones follow the destination
+const OPT_GROUP_ICON = {Website: "i-web", Email: "i-mail", Social: "i-social", Delivery: "i-folder"};
+const ST = {ready: ["st-wait", "Ready"], waiting: ["st-wait", "Not run"], running: ["st-run", "Optimizing…"], canceled: ["st-wait", "Canceled"],
+  done: ["st-ok", "Done"], already_fit: ["st-ok", "Already fit"], resized_to_fit: ["st-attn", "Resized to fit"],
+  attention: ["st-attn", "Needs attention"], failed: ["st-fail", "Failed"]};
+const NEEDS_LOOK = new Set(["attention", "failed"]);
+const RETRYABLE = new Set(["attention", "failed", "canceled", "waiting"]);
+const destById = id => DESTS.find(d => d.id === id);
+const optChosen = () => DESTS.filter(d => optSel.has(d.id));
+const optDims = d => d.long_edge ? `${d.long_edge} long edge` : d.height ? `fits ${d.width}×${d.height}` : `${d.width} wide`;
+const optTarget = d => d.max_bytes ? `under ${fmtBytes(d.max_bytes)}` : d.upload_cap ? `up to ${fmtBytes(d.upload_cap)}` : "no size target";
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+function renderOptDests() {
+  for (const id of [...optSel]) if (!destById(id)) optSel.delete(id);
+  const groups = {}; DESTS.forEach(d => (groups[d.group] ||= []).push(d));
+  $("optDests").innerHTML = !DESTS.length ? `<p class="meta" style="padding:6px">${MODE === "server" ? "No destinations in this preset list." : "Destinations load in the Aptus Mac app."}</p>`
+    : Object.entries(groups).map(([g, list]) => `<div class="group">
+      <div class="group-head"><svg class="i"><use href="#${OPT_GROUP_ICON[g] || "i-frame"}"/></svg>${esc(g)}</div>` +
+      list.map(d => { const on = optSel.has(d.id); return `<label class="dest ${on ? "on" : ""}" for="o-${d.id}">
+        <input type="checkbox" id="o-${d.id}" value="${d.id}" ${on ? "checked" : ""} ${optRunning ? "disabled" : ""}>
+        <span class="box"><svg class="i"><use href="#i-check"/></svg></span>
+        <span><span class="dest-name">${esc(d.name)}</span><small>${optDims(d)} · ${d.format.toUpperCase()} · ${optTarget(d)}</small></span><span></span>
+      </label>`; }).join("") + `</div>`).join("");
+  $("optPresetRows").innerHTML = DESTS.map(d => `<tr><td>${esc(d.name)}</td><td>${optDims(d)}</td><td>${d.format.toUpperCase()}</td>
+    <td>${d.max_bytes ? "Under " + fmtBytes(d.max_bytes) : d.upload_cap ? `Up to ${fmtBytes(d.upload_cap)}` : "None"}</td>
+    <td>${esc(d.basis || "")}${d.ratio_note ? ` Shows ${esc(d.ratio_note)} uncropped.` : ""}${d.checked ? ` <span class="meta">Checked ${esc(d.checked)}</span>` : ""}</td></tr>`).join("");
+  renderOptInspector(); renderOptButton();
+}
+$("optDests").addEventListener("change", e => {
+  const id = e.target.value; if (!id) return;
+  if (e.target.checked) {
+    if (!pro() && optSel.size) { optSel.clear(); toast("Free optimizes for one destination at a time. Pro does several at once."); }
+    optSel.add(id);
+  } else optSel.delete(id);
+  renderOptDests();
+  const row = e.target.checked && $("o-" + id); if (row) row.closest(".dest").classList.add("just");
+  if (MODE === "server") api("/api/settings", {last_optimize: [...optSel]}).catch(() => {});
+});
+
+function renderOptInspector() {
+  const list = optChosen(), one = list.length === 1 ? list[0] : null;
+  ["oMax", "oEdge", "oFormat", "oSharpen"].forEach(id => { $(id).disabled = !one || optRunning; if (!one) $(id).value = ""; });
+  $("optMultiNote").hidden = list.length < 2;
+  $("oMax").placeholder = one ? (one.max_bytes ? String(Math.round(one.max_bytes / 1000)) : "None") : "";
+  $("oEdge").placeholder = one ? (one.long_edge ? String(one.long_edge) : `${one.width} wide`) : "";
+  $("oFormat").options[0].textContent = one ? `Destination's (${one.format.toUpperCase()})` : "Destination's";
+  $("oSharpen").options[0].textContent = one ? `Destination's (${one.sharpen[0].toUpperCase() + one.sharpen.slice(1)})` : "Destination's";
+  if (!optDirty.has("downscale")) $("oDownscale").checked = list.length ? list.every(d => d.allow_downscale !== false) : true;
+  if (!optDirty.has("keep")) {
+    $("oKeepCopy").checked = !!list.length && list.every(d => (d.keep || []).includes("copyright"));
+    $("oKeepDate").checked = !!list.length && list.every(d => (d.keep || []).includes("date"));
+  }
+  const fmt = $("oFormat").value || (one && one.format);
+  $("oReduceRow").hidden = fmt !== "png";
+  ["oDownscale", "oKeepCopy", "oKeepDate", "oReduce"].forEach(id => $(id).disabled = optRunning);
+  $("optReset").disabled = optRunning;
+}
+$("oDownscale").addEventListener("change", () => optDirty.add("downscale"));
+["oKeepCopy", "oKeepDate"].forEach(id => $(id).addEventListener("change", () => optDirty.add("keep")));
+$("oFormat").addEventListener("change", renderOptInspector);
+$("optReset").addEventListener("click", () => {
+  ["oMax", "oEdge", "oFormat", "oSharpen"].forEach(id => $(id).value = ""); $("oReduce").checked = false;
+  optDirty.clear(); renderOptInspector(); toast("Using each destination's own settings");
+});
+function optSettings() {   // only what the person changed; the engine fills in the rest from the destination
+  const s = {}, one = optChosen().length === 1;
+  if (one) {
+    const mx = parseFloat($("oMax").value), ed = parseInt($("oEdge").value, 10);
+    if ($("oMax").value && !(mx >= 10)) throw new Error("Max size must be at least 10 KB.");
+    if ($("oEdge").value && !(ed >= 16 && ed <= 12000)) throw new Error("Long edge must be between 16 and 12000 pixels.");
+    if (mx) s.max_kb = mx;
+    if (ed) s.long_edge = ed;
+    if ($("oFormat").value) s.format = $("oFormat").value;
+    if ($("oSharpen").value) s.sharpen = $("oSharpen").value;
+  }
+  if (optDirty.has("downscale")) s.allow_downscale = $("oDownscale").checked;
+  if (optDirty.has("keep")) s.keep = [$("oKeepCopy").checked && "copyright", $("oKeepDate").checked && "date"].filter(Boolean);
+  if (!$("oReduceRow").hidden && $("oReduce").checked) s.reduce_colors = true;
+  return s;
+}
+
+/* files */
+function optAddFiles(files) {
+  if (optRunning) { toast("Wait for this batch to finish, then add more."); return; }
+  if (MODE !== "server") { toast("Optimize runs in the Aptus Mac app."); return; }
+  files = [...files];
+  const imgs = files.filter(f => kindOf(f) === "image"), other = files.length - imgs.length;
+  if (!imgs.length) { toast(other ? "Optimize works on photos. To use a video, grab a frame on Home first." : "Nothing in that drop was a photo."); return; }
+  for (const f of imgs) optQueue.push({uid: ++optUid, file: f, name: f.name, size: f.size, info: null, up: null, state: "ready", results: null, notes: []});
+  if (other) toast(`Added ${plural(imgs.length, "photo", "photos")}. Skipped ${plural(other, "file that isn't a photo", "files that aren't photos")}.`);
+  $("optReady").hidden = true; $("optErr").textContent = "";
+  renderOpt(); optUploadAll();
+}
+function optUpload(it) {   // send the file to the local engine once
+  it.up ||= (async () => {
+    const form = new FormData(); form.append("file", it.file);
+    try { it.info = await api("/api/upload", form); } catch (e) { it.up = null; throw e; }
+    return it.info;
+  })();
+  return it.up;
+}
+async function optUploadAll() {   // in order, so rows fill in their dimensions and thumbnails top to bottom
+  if (optUploadAll.busy) return; optUploadAll.busy = true;
+  try {
+    for (const it of optQueue) {
+      if (it.info || it.broken) continue;
+      try { await optUpload(it); } catch (e) { it.broken = e.message; it.state = "failed"; it.notes = [e.message]; }
+      if (optQueue.includes(it)) { optRenderRow(it); renderOptSummary(); }
+    }
+  } finally { optUploadAll.busy = false; }
+}
+$("optFile").tabIndex = -1; $("optAdd").tabIndex = -1;
+document.querySelectorAll('label[for="optFile"], label[for="optAdd"]').forEach(l => {
+  l.tabIndex = 0; l.setAttribute("role", "button");
+  l.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $(l.htmlFor).click(); } });
+});
+$("optFile").addEventListener("change", e => { if (e.target.files.length) optAddFiles(e.target.files); e.target.value = ""; });
+$("optAdd").addEventListener("change", e => { if (e.target.files.length) optAddFiles(e.target.files); e.target.value = ""; });
+$("optClear").addEventListener("click", () => { if (optRunning) return; optQueue = []; optFilter = false; $("optReady").hidden = true; $("optErr").textContent = ""; renderOpt(); });
+$("optStop").addEventListener("click", () => { if (optRunning) { optStopped = true; $("optLabel").textContent = "Stopping after the files in progress…"; } });
+
+/* table: rows update in place, so thumbnails don't reload */
+function worstState(states) {
+  for (const s of ["failed", "attention", "resized_to_fit"]) if (states.includes(s)) return s;
+  return states.length && states.every(s => s === "already_fit") ? "already_fit" : "done";
+}
+function optRenderRow(it) {
+  const body = $("optRows");
+  let tr = body.querySelector(`tr[data-uid="${it.uid}"]`);
+  if (!tr) { tr = document.createElement("tr"); tr.dataset.uid = it.uid; tr.innerHTML = "<td></td><td></td><td></td>"; body.append(tr); }
+  const [c0, c1, c2] = tr.children;
+  const key = `${it.info ? it.info.id : ""}|${optRunning}`;
+  if (tr.dataset.key !== key) {   // the file cell changes only when its thumbnail arrives or a run starts or ends
+    tr.dataset.key = key;
+    c0.innerHTML = `<div class="opt-file">${it.info ? `<img src="/api/preview/${it.info.id}?t=0&w=120" alt="" loading="lazy" decoding="async">` : `<span class="ph"></span>`}
+      <span class="nm">${esc(it.name)}</span>${optRunning ? "" : `<button class="x" type="button" data-oremove="${it.uid}" aria-label="Remove ${esc(it.name)}">×</button>`}</div>`;
+  }
+  c1.innerHTML = `${fmtBytes(it.size)}${it.info ? `<br>${it.info.width}×${it.info.height}` : ""}`;
+  const many = (it.results || []).length > 1;
+  const res = (it.results || []).map((r, i) => `<button class="opt-res" type="button" data-zoom="${it.uid}:${i}" title="Check at 100%">${many ? `<b>${esc(r.destination)}</b>` : ""}${fmtBytes(r.bytes)} · ${r.width}×${r.height} · ${r.format.toUpperCase()}${r.quality ? ` · q${r.quality}` : ""}</button>`).join("");
+  // Each note says which destination it's about when there are several; a result's own state sets its tone.
+  const notes = [...(it.notes || []).map(n => [n, true]),
+                 ...(it.results || []).flatMap(r => (r.notes || []).map(n => [many ? `${r.destination}: ${n}` : n, r.state !== "done" && r.state !== "already_fit"]))];
+  const loudRow = it.state === "failed" || it.state === "waiting";
+  const [cls, label] = ST[it.state] || ST.ready;
+  c2.innerHTML = `<div class="opt-cell-head"><span class="st ${cls}">${label}</span></div>` + res +
+    (notes.length ? `<div class="opt-notes">${notes.map(([n, loud]) => `<span class="${loud || loudRow ? "warn-inline" : "meta"}">${esc(n)}</span>`).join("")}</div>` : "");
+  tr.classList.toggle("opt-hide", optFilter && !NEEDS_LOOK.has(it.state));
+}
+function renderOptSummary() {
+  const n = optQueue.length;
+  if (!n) { $("optSummary").innerHTML = ""; return; }
+  const orig = optQueue.reduce((a, it) => a + it.size, 0);
+  const outs = optQueue.flatMap(it => it.results || []), out = outs.reduce((a, r) => a + r.bytes, 0);
+  const count = test => optQueue.filter(it => test(it.state)).length;
+  const ok = count(s => s === "done" || s === "already_fit"), resized = count(s => s === "resized_to_fit"), look = count(s => NEEDS_LOOK.has(s));
+  if (!look) optFilter = false;
+  const parts = [`<strong>${plural(n, "photo", "photos")}</strong>`, outs.length ? `${fmtBytes(orig)} → ${fmtBytes(out)}` : fmtBytes(orig)];
+  if (ok) parts.push(`${ok} done`);
+  if (resized) parts.push(`${resized} resized to fit`);
+  if (look) parts.push(`<button type="button" id="optFilterBtn" aria-pressed="${optFilter}">${optFilter ? "Show all files" : `${look} need${look === 1 ? "s" : ""} attention`}</button>`);
+  $("optSummary").innerHTML = parts.join(`<span aria-hidden="true">·</span>`);
+}
+function renderOpt() {
+  const has = optQueue.length > 0;
+  $("optEmpty").hidden = has; $("optLoaded").hidden = !has;
+  const keep = new Set(optQueue.map(it => String(it.uid)));
+  [...$("optRows").children].forEach(tr => { if (!keep.has(tr.dataset.uid)) tr.remove(); });
+  optQueue.forEach(optRenderRow);
+  renderOptSummary(); renderOptButton();
+}
+$("optRows").addEventListener("click", e => {
+  const rm = e.target.closest("[data-oremove]");
+  if (rm && !optRunning) { optQueue = optQueue.filter(it => it.uid !== +rm.dataset.oremove); renderOpt(); return; }
+  const z = e.target.closest("[data-zoom]"); if (!z) return;
+  const [uid, i] = z.dataset.zoom.split(":").map(Number), it = optQueue.find(x => x.uid === uid), r = it && it.results && it.results[i];
+  if (!r) return;
+  openZoom({preset: `${it.name} · ${r.destination}`, url: `/api/file/${encodeURIComponent(r.file)}`, width: r.width, height: r.height, bytes: r.bytes,
+            refUrl: "/api/optimize/reference", ref: {id: it.info.id, width: r.width, height: r.height}}, null);
+});
+$("optSummary").addEventListener("click", e => {
+  if (!e.target.closest("#optFilterBtn")) return;
+  optFilter = !optFilter; optQueue.forEach(optRenderRow); renderOptSummary();
+  const b = $("optFilterBtn"); if (b) b.focus();
+});
+
+/* the Optimize key */
+let optHold = 0, optMorphId = 0;
+function optLabelText() {
+  if (MODE !== "server") return "Optimize runs in the Mac app";
+  if (!optQueue.length) return "Add photos";
+  if (!optSel.size) return "Pick a destination";
+  const n = pro() ? optQueue.length : Math.min(optQueue.length, FREE_BATCH), files = n * optSel.size;
+  return `Optimize ${plural(n, "photo", "photos")}` + (optSel.size > 1 ? ` · ${files} files` : "");
+}
+function optMorph(text, hold = 0) {   // the same text morph as Export: state changes only, never the running count
+  const el = $("optLabel"), id = ++optMorphId;
+  optHold = hold ? Date.now() + hold : 0;
+  if (el.textContent === text) return;
+  if (RM.matches || !el.animate) { el.textContent = text; return; }
+  el.getAnimations().forEach(a => a.cancel());
+  const out = el.animate([{opacity: 1, transform: "none"}, {opacity: 0, transform: "translateY(-5px)"}], {duration: 100, easing: "ease-in", fill: "forwards"});
+  out.onfinish = () => {
+    if (id !== optMorphId) return;
+    el.textContent = text; out.cancel();
+    el.animate([{opacity: 0, transform: "translateY(5px)"}, {opacity: 1, transform: "none"}], {duration: 180, easing: "cubic-bezier(.2,.8,.2,1)"});
+  };
+  if (hold) { clearTimeout(optMorph.t); optMorph.t = setTimeout(() => { if (!optRunning) { optHold = 0; optMorph(optLabelText()); } }, hold); }
+}
+function renderOptButton() {
+  if (!optRunning && Date.now() >= optHold) $("optLabel").textContent = optLabelText();
+  $("optBtn").disabled = optRunning || !optSel.size || !optQueue.length || MODE !== "server";
+  $("optNote").textContent = MODE === "server" ? `Saves to ${tilde(STATE.export_folder || "~/Desktop/Aptus Exports")}` : "";
+  $("optFreeNote").hidden = pro() || MODE !== "server";
+  $("optStop").hidden = !optRunning; $("optAddBtn").hidden = optRunning; $("optClear").hidden = optRunning;
+  if (MODE !== "server") {
+    $("optEmptyTitle").textContent = "Optimize runs in the Mac app";
+    $("optEmptyText").textContent = "It needs the Aptus engine to work through whole folders. This browser preview shows Resize on Home.";
+    $("optEmptyActions").hidden = true;
+  }
+}
+
+async function runOptimize(retry = false) {
+  if (optRunning || MODE !== "server" || !optSel.size || !optQueue.length) return;
+  $("optErr").textContent = "";
+  let settings;
+  try { settings = optSettings(); } catch (e) { $("optErr").textContent = e.message; return; }
+  const pool = retry ? optQueue.filter(it => RETRYABLE.has(it.state)) : [...optQueue];
+  if (!pool.length) return;
+  const run = pool.slice(0, pro() ? pool.length : FREE_BATCH);
+  pool.slice(run.length).forEach(it => { it.state = "waiting"; it.results = null; it.notes = [`Free optimizes ${FREE_BATCH} photos at a time. Pro optimizes the whole batch.`]; });
+  run.forEach(it => { it.state = "ready"; it.results = null; it.notes = []; if (it.broken) { it.broken = null; it.up = null; } });
+  optRunning = true; optStopped = false; optFilter = false;
+  $("optReady").hidden = true; $("optApti").hidden = false;
+  renderOptDests(); renderOpt();
+  optMorph(`Optimizing 0 of ${run.length}…`);
+  const dests = optChosen().map(d => d.id), n = naming(), start = startNumber();
+  const batchId = Math.random().toString(36).slice(2);
+  let next = 0, finished = 0, halt = "";
+  const worker = async () => {   // two files at a time: the engine encodes one while the other uploads
+    while (!optStopped && !halt && next < run.length) {
+      const it = run[next++];
+      it.state = "running"; optRenderRow(it);
+      try {
+        const info = await optUpload(it);
+        const d = await api("/api/optimize", {id: info.id, destinations: dests, settings, naming: n, number: start + optQueue.indexOf(it),
+                                              batch_id: batchId, batch_total: run.length});
+        it.results = d.results; optFolder = d.folder;
+        it.state = worstState(d.results.map(r => r.state));
+      } catch (e) {
+        if (e.status === 402) { halt = e.message; it.state = "ready"; }   // a Pro limit stops the batch with the reason
+        else { it.state = "failed"; it.notes = [e.message]; }
+      }
+      finished++;
+      if (!optStopped) $("optLabel").textContent = `Optimizing ${finished} of ${run.length}…`;   // a count, so no morph
+      if (optQueue.includes(it)) optRenderRow(it);
+      renderOptSummary();
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  run.forEach(it => { if (it.state === "ready" || it.state === "running") it.state = "canceled"; });
+  optRunning = false; $("optApti").hidden = true;
+  renderOptDests(); renderOpt();
+  const outs = run.flatMap(it => it.results || []);
+  if (halt) $("optErr").textContent = halt;
+  optFinish(run, outs, halt || (optStopped ? "Stopped before the rest of the batch." : ""));
+  if (!pro() && optQueue.length > FREE_BATCH && !retry) toast(`Free optimized the first ${FREE_BATCH} photos. Pro optimizes the whole batch.`);
+}
+$("optBtn").addEventListener("click", () => runOptimize());
+
+function optFinish(run, outs, stopReason) {
+  const box = $("optReady"), a = $("optReadyApti");
+  const left = optQueue.filter(it => RETRYABLE.has(it.state)).length;
+  const orig = run.filter(it => it.results).reduce((s, it) => s + it.size, 0), bytes = outs.reduce((s, r) => s + r.bytes, 0);
+  box.hidden = false; box.classList.toggle("oops", !outs.length);
+  $("optReadyKicker").textContent = stopReason ? "Stopped" : "Done";
+  $("optReadyTitle").textContent = outs.length ? `${plural(outs.length, "file", "files")} ready` : "Nothing was saved";
+  $("optReadyWhere").textContent = outs.length ? `Saved to ${tilde(optFolder)} · ${fmtBytes(orig)} → ${fmtBytes(bytes)}${stopReason ? ` · ${stopReason}` : ""}` : (stopReason || "None of the photos could be optimized. See each row for the reason.");
+  $("optReadyActions").innerHTML = (outs.length && STATE.mac ? `<button class="mini pressable" id="openFolder" type="button"><span class="inner"><svg class="i" style="width:15px;height:15px"><use href="#i-folder"/></svg>Show in Finder</span></button>` : "") +
+    (left ? `<button class="mini pressable" id="optRetry" type="button"><span class="inner">Retry ${plural(left, "photo", "photos")}</span></button>` : "");
+  a.classList.remove("cheer"); aptiState(a, null);
+  if (!outs.length) { aptiState(a, "oops"); optMorph("Optimize stopped", 1800); return; }
+  if (!celebrated) { celebrated = true; void a.offsetWidth; a.classList.add("cheer"); }   // shared with Resize: once per session
+  else aptiState(a, "nod", 450);
+  optMorph(`✓ Saved ${plural(outs.length, "file", "files")}`, 1800);
+}
+document.addEventListener("click", e => { if (e.target.closest("#optRetry")) runOptimize(true); });
+
+async function loadDestinations() {
+  if (MODE !== "server") { renderOptDests(); return; }
+  try { DESTS = await api("/api/optimize/destinations"); } catch { DESTS = []; }
+  const last = ((STATE.settings || {}).last_optimize || []).filter(id => destById(id));
+  if (last.length) { optSel.clear(); (pro() ? last : last.slice(0, 1)).forEach(id => optSel.add(id)); }
+  renderOptDests();
+}
+
 /* ---------- start ---------- */
 (async () => {
   renderDests(); renderSettings();
@@ -2014,6 +2452,7 @@ function trackEyes() {
   const tag = MODE === "server" ? (STATE.mac ? "Running on your Mac" : "Running locally") : "Browser preview";
   $("modeTag").textContent = tag; $("modeTag2").textContent = tag;
   renderDests(); renderSettings(); movePills(true);
+  await loadDestinations(); renderOpt();
   if (MODE === "browser") loadSample(true);   // the preview opens with a worked example
 })();
 </script>

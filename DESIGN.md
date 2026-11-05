@@ -127,6 +127,23 @@ Crop frames on the photo use family colors in this order: persimmon, sage text-s
 
 The glyph follows the family rules but started as a construction, not a paper sketch. Before release, sketch the metaphor by hand, then build the final layers in Icon Composer 2. Apply glass to the foreground group only, and check Default, Dark, Clear, and Tinted at 16, 32, and 64 pt on real devices.
 
+## Optimize page
+
+Optimize is the second sidebar page (and phone tab). It uses only existing components; nothing new was invented.
+
+| Optimize part | Family component | Notes |
+|---|---|---|
+| Destination rows | Sidebar row pattern | Same as Resize, grouped Website, Email, Social, Delivery. No crop swatch |
+| Settings | Inset fields, checks | Max size, long edge, format, and sharpen apply when one destination is chosen; with several, each keeps its own and a note says so |
+| File table | Table | One row per photo: thumbnail, name, original size, then each result. Rows appear at once and never animate. On phones each row stacks into a card |
+| Status | Status with icon | Sage check for Done and Already fit; butter "!" for Resized to fit and Needs attention; system red "!" for Failed; an outlined ring for Ready, Not run, and Canceled. Each always has its text label |
+| Notes | Inline warning | Butter wash when a result needs a look; tertiary mono text when it's informational. With several destinations, each note starts with the destination's name |
+| Summary | Mono metadata line | "5 photos · 21 MB → 2.3 MB · 2 done · 3 need attention." The attention count filters the table |
+| Optimize key | Primary button, raised | "Optimize 5 photos" → "Optimizing 3 of 5…" → "✓ Saved 10 files." The running count changes text without a morph, because it updates often |
+| Done block | The Resize done block | Apti's hop is shared with Resize, so it plays once per session across both pages |
+
+The sidebar icon is two corner arrows pointing inward between two squares, for "make smaller." Like the app icon, sketch it by hand before release.
+
 ## What changed from the first Aptus look
 
 - Teal (`#3FB8A4`), coral, lime, and iris are gone. Sage is the accent, with butter and persimmon supporting.
