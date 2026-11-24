@@ -160,6 +160,10 @@ def license_state() -> dict:
             return {"pro": True, "source": "license", "configured": True, "email": lic.get("email", "")}
     if not getattr(sys, "frozen", False):
         return {"pro": True, "source": "developer", "configured": configured}
+    if not configured:
+        # No license service in this build, so nobody could activate Pro. Until licensing is turned on (see the
+        # README), the built app is the owner's copy and runs with everything on. Free limits start with licensing.
+        return {"pro": True, "source": "unlicensed", "configured": False}
     return {"pro": False, "source": "free", "configured": configured}
 
 

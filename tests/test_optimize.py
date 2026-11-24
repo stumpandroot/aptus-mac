@@ -255,3 +255,28 @@ def test_preview_thumbnail_width(client):
     up = upload(c)
     thumb = Image.open(io.BytesIO(c.get(f"/api/preview/{up['id']}?w=120").content))
     assert thumb.width == 120
+
+
+# ---------- Pro in built apps ----------
+
+def test_built_app_without_licensing_is_pro(monkeypatch):
+    import sys
+    import app as aptus_app
+    monkeypatch.delenv("APTUS_PRO", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(aptus_app, "license_manager", lambda: None)
+    assert aptus_app.license_state() == {"pro": True, "source": "unlicensed", "configured": False}
+
+
+def test_built_app_with_licensing_and_no_license_is_free(monkeypatch):
+    import sys
+    import app as aptus_app
+
+    class NoLicense:
+        def current_license(self):
+            return None
+
+    monkeypatch.delenv("APTUS_PRO", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(aptus_app, "license_manager", lambda: NoLicense())
+    assert aptus_app.license_state()["pro"] is False

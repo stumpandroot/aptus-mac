@@ -1968,8 +1968,9 @@ function renderSettings() {
     preview: "The preview shows every Pro feature so you can try them.",
     developer: "Running from source, so Pro features are on for testing. The signed app checks a real license.",
     forced: "Pro is set by the APTUS_PRO setting for testing.",
+    unlicensed: "Licensing isn't turned on in this build, so every Pro feature is on. Free limits start once licensing is set up.",
     license: `Licensed${L.email ? " to " + L.email : ""}. Thanks for supporting GreenLaunch.`,
-    free: "Free exports one file to one destination at a time. Pro adds batches, several destinations at once, your own presets, interval grabs and contact sheets.",
+    free: "Free exports one file to one destination at a time and optimizes up to 10 photos for one destination. Pro adds batches, several destinations at once, your own presets, interval grabs and contact sheets, and Optimize for any number of photos.",
   }[L.source] || "";
   $("licForm").hidden = !(server && L.source === "free" && L.configured);
   $("licDeactivate").hidden = !(server && L.source === "license");

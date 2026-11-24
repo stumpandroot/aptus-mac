@@ -14,7 +14,7 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 96 tests for the engine, the server, Optimize, and the new features |
+| `tests/` | 98 tests for the engine, the server, Optimize, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source
@@ -55,7 +55,7 @@ The server enforces these limits, not just the interface.
 ## Before you ship: four things only you can do
 
 1. **Host the preset list.** Upload `presets.json` to `https://greenlaunch.co/aptus/presets.json` (or change `PRESETS_URL` in `app.py`). When platform sizes change, edit it and raise `version` by 1; apps pick it up the next time they open.
-2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs as Free with no way to activate.
+2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs with every Pro feature on, as the owner's copy; Free limits start once licensing is set up.
 3. **Finish the app icon.** `mac/Aptus.icns` is an interim flat icon. Build the final one in Icon Composer 2 from the layers in `mac/icon/`, as described in `DESIGN.md`.
 4. **Set up signing.** In the [stumpandroot/aptus-mac repository](https://github.com/stumpandroot/aptus-mac), go to **Settings > Secrets and variables > Actions** and add the same six secrets as Vectorize: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `MACOS_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`. The Vectorize README has the step-by-step for making each one.
 
