@@ -59,9 +59,16 @@ cmake -S libjxl -B build -G "Unix Makefiles" \
   -DCMAKE_DISABLE_FIND_PACKAGE_GIF=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_JPEG=ON \
   "${EXTRA[@]}"
-# Build everything, not only the cjxl target: libpng generates pnglibconf.h in its own step, and a
-# cjxl-only build can reach code that needs it first.
-cmake --build build -j"$JOBS"
+# libpng generates pnglibconf.h in its own step, but libjxl's PNG reader is an object library that doesn't wait
+# for it, so a parallel build races. Build libpng (and its generated headers) first, then cjxl.
+for target in genfiles png_genfiles png_static; do
+  if cmake --build build --target help | grep -q "\.\.\. $target\$"; then
+    cmake --build build --target "$target" -j"$JOBS"
+  fi
+done
+test -f build/third_party/libpng/pnglibconf.h || find build -name pnglibconf.h | grep -q . \
+  || { echo "libpng didn't generate pnglibconf.h" >&2; exit 1; }
+cmake --build build --target cjxl -j"$JOBS"
 
 cp build/tools/cjxl "$OUT/"
 cp libjxl/LICENSE "$OUT/LICENSE-libjxl.txt"
