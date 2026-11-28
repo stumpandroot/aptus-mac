@@ -15,22 +15,28 @@ from pathlib import Path
 
 from PIL import Image, ImageCms, ImageFilter, ImageOps
 
+from . import jxl
 from .images import PIL_FORMAT, _prepare_mode, to_srgb
 
-FORMATS = {"jpg", "png", "webp", "avif"}
+FORMATS = {"jpg", "png", "webp", "avif", "jxl"}
 FITS = {"long_edge", "width", "box"}
 # The lowest quality Optimize will use before it steps the dimensions down instead. Quality 30 (Resize's
 # floor) looks muddy; these are starting values to calibrate with SSIMULACRA2 on a real test set.
-FLOORS = {"jpg": 65, "webp": 65, "avif": 50}
+FLOORS = {"jpg": 65, "webp": 65, "avif": 50, "jxl": 65}
 # Search with fast encoder settings, then make the final file with the slow, smaller ones.
-SEARCH = {"webp": {"method": 4}, "avif": {"speed": 8}}
-FINAL = {"webp": {"method": 6}, "avif": {"speed": 6}}
+SEARCH = {"webp": {"method": 4}, "avif": {"speed": 8}, "jxl": {"effort": 4}}
+FINAL = {"webp": {"method": 6}, "avif": {"speed": 6}, "jxl": {"effort": 7}}
 SHARPEN = {"off": None, "low": (0.8, 35, 3), "medium": (1.0, 60, 2)}   # UnsharpMask radius, percent, threshold
 KEEPABLE = {"copyright", "date"}
 SOURCE_FORMAT = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "AVIF": "avif"}
 FIELDS = {"id", "group", "name", "long_edge", "width", "height", "format", "quality", "max_bytes", "min_edge",
           "allow_downscale", "upload_cap", "ratio_min", "ratio_max", "ratio_note", "platform", "sharpen",
-          "keep", "slug", "basis", "source_url", "checked"}
+          "keep", "slug", "basis", "source_url", "checked", "archive"}
+# Where a JPEG XL file can't be used: Webflow's Assets panel, social platforms and email clients don't take it,
+# and about 30% of browsers (Edge, Samsung Internet) can't show it.
+JXL_REFUSED = {"Website": "Webflow doesn't accept JPEG XL uploads, and about 30% of browsers can't show it.",
+               "Email": "Email apps can't show JPEG XL.",
+               "Social": "{who} doesn't accept JPEG XL uploads."}
 
 # Tags whose presence means a file can't be copied as-is, because publishing would leak them.
 GPS_IFD, EXIF_IFD = 0x8825, 0x8769
@@ -43,7 +49,7 @@ class Destination:
     id: str
     group: str
     name: str
-    format: str                       # jpg | png | webp | avif
+    format: str                       # jpg | png | webp | avif | jxl
     quality: int | None = None        # starting quality for lossy formats
     max_bytes: int | None = None      # the per-file ceiling; None = no target
     long_edge: int | None = None      # fit the longer side to this
@@ -62,10 +68,11 @@ class Destination:
     basis: str = ""
     source_url: str = ""              # where the platform spec came from
     checked: str = ""                 # when it was last checked, YYYY-MM-DD
+    archive: bool = False             # lossless JPEG XL at full size, keeping everything (see archive_image)
 
     @property
     def fit(self) -> str:
-        return "long_edge" if self.long_edge else "box" if self.height else "width"
+        return "original" if self.archive else "long_edge" if self.long_edge else "box" if self.height else "width"
 
     @property
     def cap(self) -> int | None:
@@ -94,7 +101,11 @@ def make_destination(raw: dict) -> Destination:
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,40}", d.id or ""):
         raise ValueError(f"{name}: the id must be lowercase letters, numbers and hyphens.")
     if d.format not in FORMATS:
-        raise ValueError(f"{name}: unknown format {d.format!r}. Use jpg, png, webp or avif.")
+        raise ValueError(f"{name}: unknown format {d.format!r}. Use jpg, png, webp, avif or jxl.")
+    if d.archive:
+        if d.format != "jxl" or d.long_edge or d.width or d.height or d.max_bytes:
+            raise ValueError(f"{name}: an archive destination is JPEG XL at full size, with no size or max size.")
+        return d
     if bool(d.long_edge) == bool(d.width):
         raise ValueError(f"{name}: set either a long edge or a width.")
     if d.height and not d.width:
@@ -139,6 +150,8 @@ class Settings:
     reduce_colors: bool = False            # PNG only: palette reduction
 
     def apply(self, d: Destination) -> Destination:
+        if d.archive:
+            return d   # an archive keeps the original exactly, so size, format and metadata settings don't apply
         changes: dict = {}
         if self.format:
             if self.format not in FORMATS:
@@ -283,6 +296,8 @@ def _has_alpha(img: Image.Image) -> bool:
 
 
 def _encode(img: Image.Image, fmt: str, quality: int | None, final: bool, exif: bytes | None) -> bytes:
+    if fmt == "jxl":
+        return jxl.encode(img, quality, (FINAL if final else SEARCH)["jxl"]["effort"], exif)
     buf = io.BytesIO()
     kw: dict = {}
     if fmt == "jpg":
@@ -352,12 +367,24 @@ def prepared(src: Image.Image) -> Image.Image:
 # ---------- the pipeline ----------
 
 def optimize_image(src: Image.Image, d: Destination, nbytes: int | None = None,
-                   reduce_colors: bool = False, base: Image.Image | None = None) -> OptimizeResult:
+                   reduce_colors: bool = False, base: Image.Image | None = None,
+                   source_path: str | Path | None = None) -> OptimizeResult:
     """Produce one file for one destination. The source is never modified.
 
     nbytes: the source file's size, to decide whether it can be copied unchanged.
     base: the prepared picture (see prepared()), when the caller already has it.
+    source_path: the original file, which an archive repacks directly.
     """
+    if d.archive:
+        return archive_image(src, nbytes, source_path)
+    r = _optimize(src, d, nbytes, reduce_colors, base)
+    if r.format == "jxl" and d.group in JXL_REFUSED:
+        r.notes.append(JXL_REFUSED[d.group].format(who=d.platform or d.name))
+        r.state = "attention"
+    return r
+
+
+def _optimize(src, d, nbytes, reduce_colors, base) -> OptimizeResult:
     notes: list[str] = []
     work = base if base is not None else prepared(src)
     w0, h0 = work.size
@@ -425,6 +452,43 @@ def optimize_image(src: Image.Image, d: Destination, nbytes: int | None = None,
         notes.append(crop_note)
         state = "attention"
     return OptimizeResult(data, fmt, w, h, q, len(data), state, notes)
+
+
+# ---------- archive: lossless JPEG XL ----------
+
+LOSSLESS_SOURCES = {"PNG", "TIFF", "BMP"}
+
+
+def archive_image(src: Image.Image, nbytes: int | None, source_path: str | Path | None) -> OptimizeResult:
+    """Repack the original file as JPEG XL with nothing lost, keeping every pixel and all metadata.
+
+    A JPEG is transcoded: about 20% smaller, and djxl turns it back into the byte-identical original.
+    PNG, TIFF and BMP become lossless JPEG XL. Files that are already lossy (WebP, AVIF, HEIC, GIF) are copied
+    unchanged, because repacking their decoded pixels losslessly would make them bigger. When JPEG XL wouldn't
+    make the file smaller, the original is copied too.
+    """
+    w, h = src.size
+    size = nbytes if nbytes is not None else 0
+    fmt = src.format or ""
+
+    def copy(why: str) -> OptimizeResult:
+        return OptimizeResult(None, SOURCE_FORMAT.get(fmt, (fmt or "file").lower()), w, h, None, size, "already_fit", [why])
+
+    if fmt == "JPEG" and source_path:
+        data = jxl.transcode_jpeg(source_path)
+        how = "Repacked losslessly. djxl turns it back into the exact original JPEG."
+    elif fmt == "PNG" and source_path:
+        data = jxl.lossless_file(source_path)
+        how = "Saved as lossless JPEG XL: every pixel and the metadata are kept."
+    elif fmt in LOSSLESS_SOURCES and src.mode in ("RGB", "RGBA", "L", "LA"):
+        data = jxl.encode(src, None, FINAL["jxl"]["effort"], src.info.get("exif"), src.info.get("icc_profile"))
+        how = "Saved as lossless JPEG XL: every pixel and the metadata are kept."
+    else:
+        return copy("Already compressed with loss, so it's copied unchanged. Repacking it would make it bigger.")
+    if size and len(data) >= size:
+        return copy("JPEG XL wouldn't make this file smaller, so it's copied unchanged.")
+    saved = f" {fmt_bytes(size)} → {fmt_bytes(len(data))}." if size else ""
+    return OptimizeResult(data, "jxl", w, h, None, len(data), "done", [how + saved])
 
 
 def fmt_bytes(n: int | None) -> str:

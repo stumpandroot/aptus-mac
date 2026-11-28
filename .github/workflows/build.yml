@@ -30,6 +30,7 @@ jobs:
     env:
       VERSION: ${{ github.event.inputs.version || '1.0.0' }}
       FFMPEG_VERSION: "7.1.1"
+      JXL_VERSION: "0.11.1"
       HAS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -55,9 +56,22 @@ jobs:
           set -o pipefail
           bash mac/build_ffmpeg.sh 2>&1 | tee "$RUNNER_TEMP/logs/1-ffmpeg.log"
 
-      - name: Run tests (with the same ffmpeg the app ships)
+      - name: Reuse the JPEG XL build if nothing changed
+        uses: actions/cache@v4
+        with:
+          path: mac/vendor/jxl
+          key: jxl-${{ env.JXL_VERSION }}-${{ matrix.label }}-${{ hashFiles('mac/build_jxl.sh') }}
+
+      - name: Build the JPEG XL encoder (BSD)
+        run: |
+          set -o pipefail
+          bash mac/build_jxl.sh 2>&1 | tee "$RUNNER_TEMP/logs/1b-jxl.log"
+
+      - name: Run tests (with the same ffmpeg and cjxl the app ships)
         env:
           APTUS_FFMPEG_DIR: ${{ github.workspace }}/mac/vendor/ffmpeg
+          APTUS_JXL_DIR: ${{ github.workspace }}/mac/vendor/jxl
+          APTUS_REQUIRE_JXL: "1"
           APTUS_NO_UPDATE: "1"
         run: |
           export PATH="$APTUS_FFMPEG_DIR:$PATH"

@@ -32,6 +32,7 @@ from pydantic import BaseModel
 from aptus_engine import (Naming, Settings, contact_sheet, export_image, export_set, file_name, grab_frame,
                           limit_warnings, load_destinations, load_limits, load_presets, optimize_image, prepared,
                           probe, sharp_frames, slugify)
+from aptus_engine import jxl
 from aptus_engine import presets as presets_mod
 from aptus_engine import images as images_mod
 from aptus_engine.images import render_image
@@ -292,6 +293,7 @@ def state():
         "export_folder": str(out_dir()), "default_folder": str(DEFAULT_OUT),
         "limits": [lim.__dict__ for lim in LIMITS],
         "presets_version": presets_mod.file_version(presets_mod.active_presets_path(cache=cache_path())),
+        "jxl": jxl.available(),
     }
 
 
@@ -743,6 +745,8 @@ def optimize(req: OptimizeRequest):
         dests = [settings.apply(DESTINATIONS[d]) for d in req.destinations]
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
+    if any(d.format == "jxl" for d in dests) and not jxl.available():
+        raise HTTPException(400, "JPEG XL needs the cjxl encoder, which isn't in this build.")
     naming = Naming(**{k: v for k, v in (req.naming or {}).items()
                        if k in ("location", "descriptor", "client", "shot", "numbered")})
     number = req.number if req.number is not None else 1
@@ -753,7 +757,10 @@ def optimize(req: OptimizeRequest):
     folder.mkdir(parents=True, exist_ok=True)
     results = []
     for d in dests:
-        r = optimize_image(src, d, src_bytes, reduce_colors=settings.reduce_colors, base=base)
+        try:
+            r = optimize_image(src, d, src_bytes, reduce_colors=settings.reduce_colors, base=base, source_path=m["path"])
+        except RuntimeError as e:   # an encoder tool failed on this file
+            raise HTTPException(422, str(e))
         path = unique_path(folder / file_name(m["stem"], d.slug, r.format, naming, number))
         if r.data is None:
             shutil.copyfile(m["path"], path)

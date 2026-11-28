@@ -548,6 +548,7 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
     <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-optimize" viewBox="0 0 24 24"><path d="M4.5 9.5h5v-5M4 4l5.5 5.5M19.5 14.5h-5v5M20 20l-5.5-5.5"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.4"/><path d="M5 9v9a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 18V9M10 13h4"/></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4.5 7.5 12 13l7.5-5.5"/></symbol>
   </defs>
 </svg>
@@ -746,10 +747,11 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
             <div class="fields">
               <label class="field">Max size (KB)<input id="oMax" type="number" min="10" step="10" inputmode="numeric"></label>
               <label class="field">Long edge (px)<input id="oEdge" type="number" min="16" max="12000" step="10" inputmode="numeric"></label>
-              <label class="field">Format<select id="oFormat"><option value="">Destination's</option><option value="webp">WebP</option><option value="jpg">JPEG</option><option value="avif">AVIF</option><option value="png">PNG</option></select></label>
+              <label class="field">Format<select id="oFormat"><option value="">Destination's</option><option value="webp">WebP</option><option value="jpg">JPEG</option><option value="avif">AVIF</option><option value="png">PNG</option><option value="jxl" id="oFormatJxl">JPEG XL</option></select></label>
               <label class="field">Sharpen<select id="oSharpen"><option value="">Destination's</option><option value="off">Off</option><option value="low">Low</option><option value="medium">Medium</option></select></label>
             </div>
             <p class="meta" id="optMultiNote" hidden>Each destination uses its own size and format. Pick one destination to change them.</p>
+            <p class="meta" id="optArchiveNote" hidden>The archive keeps each original exactly, at full size with all its metadata, so these settings don't apply to it.</p>
             <div>
               <label class="check"><input type="checkbox" id="oDownscale" checked>Allow smaller dimensions</label>
               <label class="check"><input type="checkbox" id="oKeepCopy">Keep copyright and credit</label>
@@ -2133,7 +2135,7 @@ const optSel = new Set(["web-content"]);
 let optQueue = [];              // {uid, file, name, size, info, up, state, results, notes, broken}
 let optRunning = false, optStopped = false, optFilter = false, optFolder = "", optUid = 0;
 const optDirty = new Set();     // toggles the person changed; untouched ones follow the destination
-const OPT_GROUP_ICON = {Website: "i-web", Email: "i-mail", Social: "i-social", Delivery: "i-folder"};
+const OPT_GROUP_ICON = {Website: "i-web", Email: "i-mail", Social: "i-social", Delivery: "i-folder", Archive: "i-archive"};
 const ST = {ready: ["st-wait", "Ready"], waiting: ["st-wait", "Not run"], running: ["st-run", "Optimizing…"], canceled: ["st-wait", "Canceled"],
   done: ["st-ok", "Done"], already_fit: ["st-ok", "Already fit"], resized_to_fit: ["st-attn", "Resized to fit"],
   attention: ["st-attn", "Needs attention"], failed: ["st-fail", "Failed"]};
@@ -2141,8 +2143,10 @@ const NEEDS_LOOK = new Set(["attention", "failed"]);
 const RETRYABLE = new Set(["attention", "failed", "canceled", "waiting"]);
 const destById = id => DESTS.find(d => d.id === id);
 const optChosen = () => DESTS.filter(d => optSel.has(d.id));
-const optDims = d => d.long_edge ? `${d.long_edge} long edge` : d.height ? `fits ${d.width}×${d.height}` : `${d.width} wide`;
-const optTarget = d => d.max_bytes ? `under ${fmtBytes(d.max_bytes)}` : d.upload_cap ? `up to ${fmtBytes(d.upload_cap)}` : "no size target";
+const optDims = d => d.archive ? "full size" : d.long_edge ? `${d.long_edge} long edge` : d.height ? `fits ${d.width}×${d.height}` : `${d.width} wide`;
+const optTarget = d => d.archive ? "lossless" : d.max_bytes ? `under ${fmtBytes(d.max_bytes)}` : d.upload_cap ? `up to ${fmtBytes(d.upload_cap)}` : "no size target";
+const fmtLabel = f => f === "jxl" ? "JPEG XL" : f.toUpperCase();
+const jxlReady = () => !!(STATE && STATE.jxl);
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 function renderOptDests() {
@@ -2151,13 +2155,13 @@ function renderOptDests() {
   $("optDests").innerHTML = !DESTS.length ? `<p class="meta" style="padding:6px">${MODE === "server" ? "No destinations in this preset list." : "Destinations load in the Aptus Mac app."}</p>`
     : Object.entries(groups).map(([g, list]) => `<div class="group">
       <div class="group-head"><svg class="i"><use href="#${OPT_GROUP_ICON[g] || "i-frame"}"/></svg>${esc(g)}</div>` +
-      list.map(d => { const on = optSel.has(d.id); return `<label class="dest ${on ? "on" : ""}" for="o-${d.id}">
-        <input type="checkbox" id="o-${d.id}" value="${d.id}" ${on ? "checked" : ""} ${optRunning ? "disabled" : ""}>
+      list.map(d => { const on = optSel.has(d.id), off = d.format === "jxl" && !jxlReady(); return `<label class="dest ${on ? "on" : ""}" for="o-${d.id}">
+        <input type="checkbox" id="o-${d.id}" value="${d.id}" ${on ? "checked" : ""} ${optRunning || off ? "disabled" : ""}>
         <span class="box"><svg class="i"><use href="#i-check"/></svg></span>
-        <span><span class="dest-name">${esc(d.name)}</span><small>${optDims(d)} · ${d.format.toUpperCase()} · ${optTarget(d)}</small></span><span></span>
+        <span><span class="dest-name">${esc(d.name)}</span><small>${off ? "Needs the JPEG XL encoder, which isn't in this build" : `${optDims(d)} · ${fmtLabel(d.format)} · ${optTarget(d)}`}</small></span><span></span>
       </label>`; }).join("") + `</div>`).join("");
-  $("optPresetRows").innerHTML = DESTS.map(d => `<tr><td>${esc(d.name)}</td><td>${optDims(d)}</td><td>${d.format.toUpperCase()}</td>
-    <td>${d.max_bytes ? "Under " + fmtBytes(d.max_bytes) : d.upload_cap ? `Up to ${fmtBytes(d.upload_cap)}` : "None"}</td>
+  $("optPresetRows").innerHTML = DESTS.map(d => `<tr><td>${esc(d.name)}</td><td>${d.archive ? "Full size" : optDims(d)}</td><td>${fmtLabel(d.format)}</td>
+    <td>${d.archive ? "Lossless" : d.max_bytes ? "Under " + fmtBytes(d.max_bytes) : d.upload_cap ? `Up to ${fmtBytes(d.upload_cap)}` : "None"}</td>
     <td>${esc(d.basis || "")}${d.ratio_note ? ` Shows ${esc(d.ratio_note)} uncropped.` : ""}${d.checked ? ` <span class="meta">Checked ${esc(d.checked)}</span>` : ""}</td></tr>`).join("");
   renderOptInspector(); renderOptButton();
 }
@@ -2173,12 +2177,16 @@ $("optDests").addEventListener("change", e => {
 });
 
 function renderOptInspector() {
-  const list = optChosen(), one = list.length === 1 ? list[0] : null;
+  const list = optChosen(), one = list.length === 1 && !list[0].archive ? list[0] : null;
+  const archiveOnly = list.length > 0 && list.every(d => d.archive);
   ["oMax", "oEdge", "oFormat", "oSharpen"].forEach(id => { $(id).disabled = !one || optRunning; if (!one) $(id).value = ""; });
-  $("optMultiNote").hidden = list.length < 2;
+  $("oFormatJxl").disabled = !jxlReady();
+  $("oFormatJxl").textContent = jxlReady() ? "JPEG XL" : "JPEG XL (needs the encoder)";
+  $("optMultiNote").hidden = list.length < 2 || archiveOnly;
+  $("optArchiveNote").hidden = !list.some(d => d.archive);
   $("oMax").placeholder = one ? (one.max_bytes ? String(Math.round(one.max_bytes / 1000)) : "None") : "";
   $("oEdge").placeholder = one ? (one.long_edge ? String(one.long_edge) : `${one.width} wide`) : "";
-  $("oFormat").options[0].textContent = one ? `Destination's (${one.format.toUpperCase()})` : "Destination's";
+  $("oFormat").options[0].textContent = one ? `Destination's (${fmtLabel(one.format)})` : "Destination's";
   $("oSharpen").options[0].textContent = one ? `Destination's (${one.sharpen[0].toUpperCase() + one.sharpen.slice(1)})` : "Destination's";
   if (!optDirty.has("downscale")) $("oDownscale").checked = list.length ? list.every(d => d.allow_downscale !== false) : true;
   if (!optDirty.has("keep")) {
@@ -2272,7 +2280,7 @@ function optRenderRow(it) {
   }
   c1.innerHTML = `${fmtBytes(it.size)}${it.info ? `<br>${it.info.width}×${it.info.height}` : ""}`;
   const many = (it.results || []).length > 1;
-  const res = (it.results || []).map((r, i) => `<button class="opt-res" type="button" data-zoom="${it.uid}:${i}" title="Check at 100%">${many ? `<b>${esc(r.destination)}</b>` : ""}${fmtBytes(r.bytes)} · ${r.width}×${r.height} · ${r.format.toUpperCase()}${r.quality ? ` · q${r.quality}` : ""}</button>`).join("");
+  const res = (it.results || []).map((r, i) => `<button class="opt-res" type="button" data-zoom="${it.uid}:${i}" title="Check at 100%">${many ? `<b>${esc(r.destination)}</b>` : ""}${fmtBytes(r.bytes)} · ${r.width}×${r.height} · ${fmtLabel(r.format)}${r.quality ? ` · q${r.quality}` : ""}</button>`).join("");
   // Each note says which destination it's about when there are several; a result's own state sets its tone.
   const notes = [...(it.notes || []).map(n => [n, true]),
                  ...(it.results || []).flatMap(r => (r.notes || []).map(n => [many ? `${r.destination}: ${n}` : n, r.state !== "done" && r.state !== "already_fit"]))];

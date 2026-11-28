@@ -7,14 +7,14 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 | Path | What it is |
 | --- | --- |
 | `presets.json` | The built-in Resize presets (`presets`), upload limits (`limits`), and Optimize destinations (`optimize`). Edit sizes here; no code changes needed. |
-| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), Optimize batches (`optimize.py`), file names (`naming.py`), video frames (`video.py`) |
+| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), Optimize batches (`optimize.py`), JPEG XL through cjxl (`jxl.py`), file names (`naming.py`), video frames (`video.py`) |
 | `app.py` | The local engine server the interface talks to |
 | `static/index.html` | The interface. The same file runs in the Mac app and as the browser preview. |
 | `greenlaunch_license.py` | The GreenLaunch license check (a copy of the one in the license service; keep them in sync) |
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 98 tests for the engine, the server, Optimize, and the new features |
+| `tests/` | 105 tests for the engine, the server, Optimize, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source
@@ -32,6 +32,7 @@ Running from source counts as Pro, so every feature is on for testing. Set `APTU
 - **Crops you place:** every exact-size destination draws its own frame. Drag a frame to move it, drag a corner to crop tighter, or tap the subject to move every frame at once.
 - **Size targets:** encodes at the preset quality and, if the file is over its target, finds the highest quality that fits (lowest allowed: 30). If even that's too big, it says so.
 - **Optimize:** drop a batch or a folder, pick a destination, and every photo is resized by its long edge or width, converted, and compressed under the destination's max size. Nothing is cropped. Optimize won't go below quality 65 (50 for AVIF); when that still doesn't fit, it steps the dimensions down, never below the destination's minimum. Social destinations warn when a platform will crop a photo's shape. A file that already meets every rule is copied unchanged. GPS and camera serial numbers are always removed; copyright, credit, and capture date can be kept. Every photo gets one result: Done, Already fit, Resized to fit, Needs attention, or Failed, and **Retry** reruns only the exceptions.
+- **JPEG XL:** the **Archive** destination repacks JPEGs about 20% smaller with every pixel and all metadata kept; `djxl` turns them back into the byte-identical original. PNG, TIFF, and BMP become lossless JPEG XL, and already-lossy files are copied unchanged. JPEG XL is also in Optimize's Format menu, with a warning wherever it won't be accepted (Webflow, email, social platforms). Aptus calls libjxl's `cjxl` (BSD), built by `mac/build_jxl.sh` and bundled in the app, instead of the GPL Python plugin.
 - **Responsive size set:** one WebP each at 640, 1024, 1600 and 2560 wide for a `srcset`. Widths wider than the photo are skipped, never enlarged.
 - **SEO file names:** fill in location, what's in it, client, and shot type to get names like `lancaster-pa-barn-studio-smith-builders-wide-01-hero.webp`, following the Stump & Root SEO image naming guide. Aptus also suggests alt text under 125 characters.
 - **Upload limits:** warns when a file is too big for Webflow's 4 MB image limit (listed under `limits` in `presets.json`).
@@ -65,12 +66,12 @@ Every push to `main` builds two DMGs, one for Apple silicon and one for Intel. F
 
 Each build:
 
-1. Builds an LGPL-only ffmpeg from source (`mac/build_ffmpeg.sh`), with no GPL parts and no outside codec libraries. It's cached between builds.
+1. Builds an LGPL-only ffmpeg from source (`mac/build_ffmpeg.sh`), with no GPL parts and no outside codec libraries, and libjxl's `cjxl` encoder (`mac/build_jxl.sh`, BSD). Both are cached between builds.
 2. Runs the tests against that ffmpeg.
 3. Builds `Aptus.app` with PyInstaller, then checks it: `--self-test` confirms every bundled part works, and `--smoke-test` exports the sample and opens and closes the window.
 4. Signs, makes the DMG, and notarizes it when the secrets are set. Without them, you get an unsigned test build.
 
-To build on your own Mac instead: `bash mac/build_ffmpeg.sh`, then `pyinstaller --noconfirm mac/Aptus.spec`, then `bash mac/sign_and_package.sh`.
+To build on your own Mac instead: `bash mac/build_ffmpeg.sh` and `bash mac/build_jxl.sh`, then `pyinstaller --noconfirm mac/Aptus.spec`, then `bash mac/sign_and_package.sh`.
 
 ## Privacy and safety
 

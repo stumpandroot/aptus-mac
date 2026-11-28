@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "updated": "2026-11-05",
+  "version": 4,
+  "updated": "2026-11-28",
   "presets": [
     {
       "id": "web-hero",
@@ -334,6 +334,15 @@
       ],
       "slug": "proof",
       "basis": "Keeps copyright, credit and capture date; removes GPS"
+    },
+    {
+      "id": "archive",
+      "group": "Archive",
+      "name": "Archive, lossless JPEG XL",
+      "format": "jxl",
+      "archive": true,
+      "slug": "archive",
+      "basis": "JPEGs shrink about 20% with every pixel and all metadata kept, and djxl turns them back into the exact original. Already-lossy files are copied unchanged."
     }
   ]
 }

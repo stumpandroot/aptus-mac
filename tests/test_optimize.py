@@ -49,12 +49,13 @@ def with_gps_and_credit():
 # ---------- destinations ----------
 
 def test_destinations_load_and_are_valid():
-    assert len(D) == 12
+    assert len(D) == 13
     assert D["web-content"].long_edge == 1600 and D["web-content"].max_bytes == 200_000
     assert D["web-hero"].max_bytes == 300_000
     assert D["webflow-master"].format == "webp" and D["webflow-master"].upload_cap == 4_000_000
     assert D["proof"].keep == ("copyright", "date")
-    assert all(d.format != "avif" for d in D.values())   # no default may break Webflow's responsive sizes
+    assert all(d.format not in ("avif", "jxl") for d in D.values() if d.group == "Website")   # Webflow-safe defaults
+    assert D["archive"].archive and D["archive"].format == "jxl" and D["archive"].fit == "original"
 
 
 def test_destination_checks():
@@ -81,7 +82,7 @@ def test_preset_update_with_a_bad_destination_is_refused(tmp_path, monkeypatch):
 
 # ---------- size and shape ----------
 
-@pytest.mark.parametrize("did", list(D))
+@pytest.mark.parametrize("did", [k for k, d in D.items() if not d.archive])
 def test_every_destination_keeps_shape_and_meets_its_cap(did):
     d = D[did]
     src = photo()
@@ -204,7 +205,7 @@ def upload(c, name="Barn.jpg", img=None):
 
 def test_optimize_endpoint_writes_files(client):
     c, out = client
-    assert len(c.get("/api/optimize/destinations").json()) == 12
+    assert len(c.get("/api/optimize/destinations").json()) == 13
     up = upload(c)
     d = c.post("/api/optimize", json={"id": up["id"], "destinations": ["web-content", "email"]}).json()
     assert [r["destination_id"] for r in d["results"]] == ["web-content", "email"]
@@ -280,3 +281,79 @@ def test_built_app_with_licensing_and_no_license_is_free(monkeypatch):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(aptus_app, "license_manager", lambda: NoLicense())
     assert aptus_app.license_state()["pro"] is False
+
+
+# ---------- JPEG XL ----------
+# These need libjxl's cjxl. They skip on a machine without it, except in the Mac build, which sets
+# APTUS_REQUIRE_JXL so a missing or broken encoder fails the build instead of passing quietly.
+import os
+
+from aptus_engine import jxl
+
+if os.environ.get("APTUS_REQUIRE_JXL") == "1":
+    assert jxl.available(), "APTUS_REQUIRE_JXL is set but cjxl wasn't found"
+needs_jxl = pytest.mark.skipif(not jxl.available(), reason="cjxl isn't installed")
+
+
+def is_jxl(data):
+    return data[:2] == b"\xff\x0a" or data[4:8] == b"JXL "
+
+
+def test_archive_destination_checks():
+    base = {"id": "a", "group": "Archive", "name": "A", "format": "jxl", "archive": True}
+    make_destination(base)
+    with pytest.raises(ValueError, match="archive"):
+        make_destination({**base, "long_edge": 2000})
+    with pytest.raises(ValueError, match="archive"):
+        make_destination({**base, "format": "webp"})
+    assert Settings(format="webp", max_bytes=50_000).apply(D["archive"]) == D["archive"]
+
+
+def test_archive_copies_already_lossy_files(tmp_path):
+    src, n, data = as_file(photo(800, 600), "WEBP", quality=80)
+    r = optimize_image(src, D["archive"], n, source_path=tmp_path / "unused.webp")
+    assert r.data is None and r.state == "already_fit" and "copied unchanged" in r.notes[0]
+
+
+@needs_jxl
+def test_archive_repacks_a_jpeg_losslessly(tmp_path):
+    src, n, data = as_file(photo(1600, 1067), "JPEG", quality=92, exif=with_gps_and_credit())
+    path = tmp_path / "shoot.jpg"
+    path.write_bytes(data)
+    r = optimize_image(src, D["archive"], n, source_path=path)
+    assert r.state == "done" and r.format == "jxl" and is_jxl(r.data)
+    assert r.nbytes < n and (r.width, r.height) == (1600, 1067)
+    assert "exact original JPEG" in r.notes[0]
+
+
+@needs_jxl
+def test_archive_makes_lossless_jxl_from_png(tmp_path):
+    src, n, data = as_file(photo(800, 600, noise=4), "PNG")
+    path = tmp_path / "graphic.png"
+    path.write_bytes(data)
+    r = optimize_image(src, D["archive"], n, source_path=path)
+    assert r.format == "jxl" and is_jxl(r.data) and r.nbytes < n
+
+
+@needs_jxl
+def test_jxl_format_meets_the_cap_and_warns_for_webflow():
+    d = Settings(format="jxl").apply(D["web-content"])
+    r = optimize_image(photo(), d)
+    assert r.format == "jxl" and is_jxl(r.data) and r.nbytes <= 200_000
+    assert r.quality >= FLOORS["jxl"] and max(r.width, r.height) <= 1600
+    assert r.state == "attention" and any("Webflow doesn't accept JPEG XL" in n for n in r.notes)
+
+
+@needs_jxl
+def test_jxl_for_delivery_has_no_warning():
+    r = optimize_image(photo(1200, 800), Settings(format="jxl").apply(D["proof"]))
+    assert r.format == "jxl" and r.state == "done"
+
+
+def test_server_refuses_jxl_without_the_encoder(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(jxl, "available", lambda: False)
+    up = upload(c)
+    r = c.post("/api/optimize", json={"id": up["id"], "destinations": ["web-content"], "settings": {"format": "jxl"}})
+    assert r.status_code == 400 and "cjxl" in r.json()["detail"]
+    assert c.get("/api/state").json()["jxl"] is False

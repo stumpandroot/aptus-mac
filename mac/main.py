@@ -95,6 +95,16 @@ def self_test() -> int:
             if getattr(sys, "frozen", False):
                 assert path.startswith(sys._MEIPASS), f"{name} isn't the bundled copy: {path}"
 
+    def jpeg_xl():
+        from PIL import Image
+        from aptus_engine import jxl
+        path = jxl.cjxl_path()
+        assert path, "cjxl isn't bundled"
+        if getattr(sys, "frozen", False):
+            assert path.startswith(sys._MEIPASS), f"cjxl isn't the bundled copy: {path}"
+        data = jxl.encode(Image.new("RGB", (64, 64), (63, 184, 164)), 80, 3)
+        assert data[:2] == b"\xff\x0a" or data[4:8] == b"JXL ", "cjxl didn't write a JPEG XL file"
+
     def presets():
         from aptus_engine import load_presets
         assert len(load_presets()) >= 12
@@ -117,7 +127,7 @@ def self_test() -> int:
         assert ssl.create_default_context().cert_store_stats()["x509_ca"] > 50, "certificate list is empty"
 
     for name, fn in [("image encoders (JPG, PNG, WebP, AVIF)", encoders), ("HEIC support", heic),
-                     ("ffmpeg and ffprobe (LGPL)", ffmpeg), ("presets", presets), ("interface files", page),
+                     ("ffmpeg and ffprobe (LGPL)", ffmpeg), ("JPEG XL encoder (cjxl)", jpeg_xl), ("presets", presets), ("interface files", page),
                      ("license check", licensing), ("window (pywebview)", window),
                      ("HTTPS certificates", https)]:
         check(name, fn)
