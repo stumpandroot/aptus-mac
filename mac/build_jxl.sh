@@ -6,6 +6,7 @@
 set -euo pipefail
 
 VERSION="${JXL_VERSION:-0.11.1}"
+PNG_VERSION="${PNG_VERSION:-1.6.47}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$HERE/vendor/jxl"
 WORK="${TMPDIR:-/tmp}/aptus-jxl-$VERSION"
@@ -27,18 +28,27 @@ if [ ! -d libjxl ]; then
     https://github.com/libjxl/libjxl.git
 fi
 
-# libjxl puts only libpng's source folder on the include path, but libpng writes pnglibconf.h into the build
-# folder, so the PNG reader can't find it. libpng ships a ready-made copy for builds like this; put it in place.
-PNGDIR=libjxl/third_party/libpng
-[ -f "$PNGDIR/pnglibconf.h" ] || cp "$PNGDIR/scripts/pnglibconf.h.prebuilt" "$PNGDIR/pnglibconf.h"
-
 EXTRA=()
 if [ "$(uname)" = "Darwin" ]; then
   EXTRA+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0)
 fi
 
-# Bundled libpng (PNG in, with EXIF), skcms for color, highway and brotli from submodules, and libjxl's own
-# jpegli for reading JPEGs. Everything optional that would link a system library is off.
+# A current static libpng, built first. libjxl's bundled libpng is old enough to break on recent macOS SDKs
+# (it looks for the classic Mac OS fp.h) and its generated header never reaches libjxl's include path.
+PNG_PREFIX="$WORK/png-install"
+if [ ! -f "$PNG_PREFIX/lib/libpng16.a" ]; then
+  [ -d libpng ] || git clone --depth 1 --branch "v$PNG_VERSION" https://github.com/pnggroup/libpng.git
+  cmake -S libpng -B png-build -G "Unix Makefiles" \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+    -DCMAKE_INSTALL_PREFIX="$PNG_PREFIX" -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DPNG_SHARED=OFF -DPNG_STATIC=ON -DPNG_FRAMEWORK=OFF -DPNG_TESTS=OFF -DPNG_TOOLS=OFF -DPNG_EXECUTABLES=OFF \
+    "${EXTRA[@]}"
+  cmake --build png-build -j"$JOBS"
+  cmake --install png-build
+fi
+
+# The libpng above (PNG in, with EXIF and ICC), macOS's own zlib, skcms for color, highway and brotli from
+# submodules, and libjxl's own jpegli for reading JPEGs. Everything optional that would link a system library is off.
 # BUILD_SHARED_LIBS=OFF links libjxl and its parts statically; JPEGXL_STATIC isn't used because it asks for a
 # fully static binary, which macOS doesn't allow (cjxl links only the system's libSystem and libc++).
 # CMAKE_POLICY_VERSION_MINIMUM lets CMake 4 configure the bundled libpng, which still declares CMake 3.1.
@@ -60,7 +70,9 @@ cmake -S libjxl -B build -G "Unix Makefiles" \
   -DJPEGXL_ENABLE_PLUGINS=OFF \
   -DJPEGXL_ENABLE_VIEWERS=OFF \
   -DJPEGXL_ENABLE_SKCMS=ON \
-  -DJPEGXL_BUNDLE_LIBPNG=ON \
+  -DJPEGXL_BUNDLE_LIBPNG=OFF \
+  -DPNG_LIBRARY="$PNG_PREFIX/lib/libpng16.a" \
+  -DPNG_PNG_INCLUDE_DIR="$PNG_PREFIX/include" \
   -DCMAKE_DISABLE_FIND_PACKAGE_GIF=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_JPEG=ON \
   "${EXTRA[@]}"
