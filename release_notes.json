@@ -1,0 +1,25 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-11-28",
+    "notes": [
+      "New Optimize page: drop a batch or a folder, pick where it's going, and every photo is resized, converted, and compressed under that destination's max size. Nothing is cropped.",
+      "12 destinations: website content, hero, mobile hero, thumbnail, and Webflow upload master; email; Instagram, LinkedIn, X, Facebook, and Pinterest; and a client web proof.",
+      "Optimize won't drop below quality 65 (50 for AVIF). When a file still doesn't fit, it steps the dimensions down instead of looking muddy.",
+      "Social destinations warn when a platform will crop a photo's shape. Files that already fit are copied unchanged.",
+      "GPS and camera serial numbers are always removed. Copyright, credit, and capture date can be kept.",
+      "Every photo gets one result, with a summary, a filter for files that need attention, Stop, and Retry for only the exceptions.",
+      "JPEG XL: a new Archive destination repacks JPEGs about 20% smaller with every pixel and all metadata kept, and JPEG XL is in the Format menu, with a warning where it isn't accepted.",
+      "Every Pro feature is on until licensing is set up.",
+      "Resize: website hero is 2400 wide under 300 KB, content images are under 200 KB, and the YouTube thumbnail is 1920 × 1080 under 2 MB.",
+      "Version notes like these at the bottom of Settings."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-10-16",
+    "notes": [
+      "First release: fit photos and video frames to website, Instagram, LinkedIn, and YouTube sizes, with crops you can move, size targets, SEO file names, frame grabs, and contact sheets."
+    ]
+  }
+]

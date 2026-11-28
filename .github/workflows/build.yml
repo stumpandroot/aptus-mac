@@ -28,12 +28,17 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     env:
-      VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+      # The version comes from the newest entry in release_notes.json unless a release run names one.
+      VERSION: ${{ github.event.inputs.version }}
       FFMPEG_VERSION: "7.1.1"
       JXL_VERSION: "0.11.1"
       HAS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Take the version from the release notes
+        if: env.VERSION == ''
+        run: echo "VERSION=$(python3 -c "import json; print(json.load(open('release_notes.json'))[0]['version'])")" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v5
         with:

@@ -46,6 +46,14 @@ except ImportError:
 
 ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 VERSION = (ROOT / "VERSION").read_text().strip() if (ROOT / "VERSION").exists() else "1.0.0-dev"
+
+
+def release_notes() -> list[dict]:
+    """What changed in each version, newest first (release_notes.json, shown at the bottom of Settings)."""
+    try:
+        return json.loads((ROOT / "release_notes.json").read_text())
+    except (OSError, ValueError):
+        return []
 # The Mac app window sets this to its native folder dialog. Returns a path, or None if cancelled.
 FOLDER_PICKER = None
 IS_MAC = platform.system() == "Darwin"
@@ -289,7 +297,7 @@ def presets():
 def state():
     s = read_settings()
     return {
-        "version": VERSION, "mac": IS_MAC, "license": license_state(), "settings": s,
+        "version": VERSION, "release_notes": release_notes(), "mac": IS_MAC, "license": license_state(), "settings": s,
         "export_folder": str(out_dir()), "default_folder": str(DEFAULT_OUT),
         "limits": [lim.__dict__ for lim in LIMITS],
         "presets_version": presets_mod.file_version(presets_mod.active_presets_path(cache=cache_path())),

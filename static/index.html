@@ -304,6 +304,11 @@ tr.opt-hide{display:none}
   .opt-table td:nth-child(3){grid-column:1/-1}
 }
 .presets-page{max-width:900px;display:grid;gap:18px}
+.release-notes{display:grid;gap:6px}
+.release-notes details{border-top:1px solid var(--hairline);padding:8px 0 2px}
+.release-notes details:first-child{border-top:0;padding-top:0}
+.release-notes summary{display:flex;gap:10px;align-items:baseline;cursor:pointer;min-height:28px;list-style-position:outside}
+.release-notes ul{margin:6px 0 4px;padding-left:20px;display:grid;gap:5px;font-size:13.5px;line-height:1.45;color:var(--ink)}
 .table-wrap{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-lg);box-shadow:var(--shadow-low);overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
 th,td{text-align:left;padding:11px 16px;border-top:1px solid var(--hairline);vertical-align:top}
@@ -848,6 +853,11 @@ kbd{font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--re
             <label class="check"><input type="checkbox" id="autoUpdate" checked>Check when Aptus opens</label>
             <button class="btn btn-soft btn-sm pressable" id="checkNow" type="button"><span class="inner">Check now</span></button>
           </div>
+        </div>
+
+        <div class="card" id="notesCard" hidden>
+          <h2>What's new</h2>
+          <div id="releaseNotes" class="release-notes"></div>
         </div>
 
         <div class="card">
@@ -1979,6 +1989,7 @@ function renderSettings() {
   if (server && L.source === "free" && !L.configured) $("licText").textContent += " Licensing isn't set up in this build yet.";
   $("updText").textContent = `Platform sizes change. When Aptus opens, it checks for an updated preset list and keeps the current one if anything looks wrong. Current list: version ${STATE.presets_version}.`;
   $("versionNote").textContent = server ? `Aptus ${STATE.version || ""}` : "Browser preview";
+  renderReleaseNotes(server ? STATE.release_notes || [] : []);
 }
 async function refreshState() {
   if (MODE !== "server") return;
@@ -2126,6 +2137,15 @@ function trackEyes() {
     const k = Math.min(1, d / 220) * 2.8;   // up to 2.8 units inside a 120-unit face
     look.style.transform = `translate(${(dx / d * k).toFixed(2)}px, ${(dy / d * k).toFixed(2)}px)`;
   });
+}
+
+/* ---------- version notes: newest open, older ones folded ---------- */
+function renderReleaseNotes(list) {
+  $("notesCard").hidden = !list.length;
+  const when = d => { try { return new Date(d + "T12:00:00").toLocaleDateString(undefined, {month: "long", day: "numeric", year: "numeric"}); } catch { return d; } };
+  $("releaseNotes").innerHTML = list.map((r, i) => `<details ${i === 0 ? "open" : ""}>
+    <summary><strong>${esc(r.version)}</strong><span class="meta">${esc(when(r.date))}${r.version === STATE.version ? " · this version" : ""}</span></summary>
+    <ul>${(r.notes || []).map(n => `<li>${esc(n)}</li>`).join("")}</ul></details>`).join("");
 }
 
 /* ---------- Optimize: whole batches for a destination, never cropped ---------- */

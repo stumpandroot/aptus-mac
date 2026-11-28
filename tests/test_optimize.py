@@ -357,3 +357,25 @@ def test_server_refuses_jxl_without_the_encoder(client, monkeypatch):
     r = c.post("/api/optimize", json={"id": up["id"], "destinations": ["web-content"], "settings": {"format": "jxl"}})
     assert r.status_code == 400 and "cjxl" in r.json()["detail"]
     assert c.get("/api/state").json()["jxl"] is False
+
+
+# ---------- version notes ----------
+
+def test_release_notes_are_well_formed_and_newest_first():
+    import re
+    from pathlib import Path
+    notes = json.loads((Path(__file__).resolve().parent.parent / "release_notes.json").read_text())
+    assert notes, "release_notes.json needs at least one version"
+    versions = []
+    for r in notes:
+        assert re.fullmatch(r"\d+\.\d+\.\d+", r["version"]), r["version"]
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", r["date"]), r["date"]
+        assert r["notes"] and all(isinstance(n, str) and n.strip() for n in r["notes"])
+        versions.append(tuple(int(x) for x in r["version"].split(".")))
+    assert versions == sorted(versions, reverse=True) and len(set(versions)) == len(versions)
+
+
+def test_state_includes_release_notes(client):
+    c, _ = client
+    notes = c.get("/api/state").json()["release_notes"]
+    assert notes[0]["version"] and notes[0]["notes"]

@@ -6,6 +6,7 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 
 | Path | What it is |
 | --- | --- |
+| `release_notes.json` | What changed in each version, newest first. The newest entry sets the build's version number and shows at the bottom of Settings. Add an entry for every build. |
 | `presets.json` | The built-in Resize presets (`presets`), upload limits (`limits`), and Optimize destinations (`optimize`). Edit sizes here; no code changes needed. |
 | `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), Optimize batches (`optimize.py`), JPEG XL through cjxl (`jxl.py`), file names (`naming.py`), video frames (`video.py`) |
 | `app.py` | The local engine server the interface talks to |
@@ -14,7 +15,7 @@ Aptus fits photos and video frames to wherever they're going: website heroes, In
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 105 tests for the engine, the server, Optimize, and the new features |
+| `tests/` | 107 tests for the engine, the server, Optimize, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source

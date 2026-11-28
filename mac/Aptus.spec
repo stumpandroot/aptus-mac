@@ -22,6 +22,7 @@ if not (JXL / "cjxl").is_file():
 datas = [
     (str(ROOT / "static"), "static"),
     (str(ROOT / "presets.json"), "."),
+    (str(ROOT / "release_notes.json"), "."),
 ]
 if (ROOT / "VERSION").exists():
     datas.append((str(ROOT / "VERSION"), "."))
