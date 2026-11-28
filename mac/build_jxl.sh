@@ -59,7 +59,9 @@ cmake -S libjxl -B build -G "Unix Makefiles" \
   -DCMAKE_DISABLE_FIND_PACKAGE_GIF=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_JPEG=ON \
   "${EXTRA[@]}"
-cmake --build build --target cjxl -j"$JOBS"
+# Build everything, not only the cjxl target: libpng generates pnglibconf.h in its own step, and a
+# cjxl-only build can reach code that needs it first.
+cmake --build build -j"$JOBS"
 
 cp build/tools/cjxl "$OUT/"
 cp libjxl/LICENSE "$OUT/LICENSE-libjxl.txt"
