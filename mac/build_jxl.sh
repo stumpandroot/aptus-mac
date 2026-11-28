@@ -34,6 +34,8 @@ fi
 
 # Bundled libpng (PNG in, with EXIF), skcms for color, highway and brotli from submodules, and libjxl's own
 # jpegli for reading JPEGs. Everything optional that would link a system library is off.
+# BUILD_SHARED_LIBS=OFF links libjxl and its parts statically; JPEGXL_STATIC isn't used because it asks for a
+# fully static binary, which macOS doesn't allow (cjxl links only the system's libSystem and libc++).
 cmake -S libjxl -B build -G "Unix Makefiles" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
@@ -52,7 +54,6 @@ cmake -S libjxl -B build -G "Unix Makefiles" \
   -DJPEGXL_ENABLE_VIEWERS=OFF \
   -DJPEGXL_ENABLE_SKCMS=ON \
   -DJPEGXL_BUNDLE_LIBPNG=ON \
-  -DJPEGXL_STATIC=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_GIF=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_JPEG=ON \
   "${EXTRA[@]}"
