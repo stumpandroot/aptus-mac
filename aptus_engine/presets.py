@@ -172,11 +172,19 @@ def new_custom_id(name: str, taken) -> str:
 
 # ---------- online updates to the built-in list ----------
 
+def _check_all(path: Path) -> None:
+    """A preset file is usable only when the Resize presets, limits and Optimize destinations all load."""
+    from .optimize import load_destinations   # imported here: optimize builds on images, which uses Preset
+    load_presets(path)
+    load_limits(path)
+    load_destinations(path)
+
+
 def active_presets_path(bundled: Path = DEFAULT_PATH, cache: Path | None = None) -> Path:
     """Use a downloaded list only when it is newer than the one inside the app and loads cleanly."""
     if cache and Path(cache).exists() and file_version(cache) > file_version(bundled):
         try:
-            load_presets(cache)
+            _check_all(cache)
             return Path(cache)
         except (ValueError, OSError, json.JSONDecodeError):
             pass
@@ -197,8 +205,7 @@ def fetch_update(url: str, cache: Path, bundled: Path = DEFAULT_PATH, timeout: f
         trial = Path(tmp) / "presets.json"
         trial.write_bytes(body)
         try:
-            load_presets(trial)
-            load_limits(trial)
+            _check_all(trial)
         except Exception:
             return "skipped: the downloaded list didn't pass checks"
         current = active_presets_path(bundled, cache)

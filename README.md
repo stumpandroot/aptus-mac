@@ -1,20 +1,21 @@
 # Aptus: Resize & Frame Grab
 
-Aptus fits photos and video frames to wherever they're going: website heroes, Instagram, LinkedIn, YouTube thumbnails, and your own sizes. This folder holds the engine, the interface, and everything needed to build the signed Mac app.
+Aptus fits photos and video frames to wherever they're going: website heroes, Instagram, LinkedIn, YouTube thumbnails, and your own sizes. Its Optimize page makes whole batches ready for a website, email, social post, or client proof without cropping. This folder holds the engine, the interface, and everything needed to build the signed Mac app.
 
 ## What's here
 
 | Path | What it is |
 | --- | --- |
-| `presets.json` | The built-in destinations and upload limits. Edit sizes here; no code changes needed. |
-| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), file names (`naming.py`), video frames (`video.py`) |
+| `release_notes.json` | What changed in each version, newest first. The newest entry sets the build's version number and shows at the bottom of Settings. Add an entry for every build. |
+| `presets.json` | The built-in Resize presets (`presets`), upload limits (`limits`), and Optimize destinations (`optimize`). Edit sizes here; no code changes needed. |
+| `aptus_engine/` | The engine: presets (`presets.py`), crops and compression (`images.py`), Optimize batches (`optimize.py`), JPEG XL through cjxl (`jxl.py`), file names (`naming.py`), video frames (`video.py`) |
 | `app.py` | The local engine server the interface talks to |
 | `static/index.html` | The interface. The same file runs in the Mac app and as the browser preview. |
 | `greenlaunch_license.py` | The GreenLaunch license check (a copy of the one in the license service; keep them in sync) |
 | `mac/` | The Mac app window (`main.py`), app recipe (`Aptus.spec`), ffmpeg build, and signing script |
 | `.github/workflows/build.yml` | Builds, tests, signs and notarizes the app on GitHub's Macs |
 | `DESIGN.md` | How Aptus applies the family design system: accent, components, Apti, icon |
-| `tests/` | 64 tests for the engine, the server, and the new features |
+| `tests/` | 107 tests for the engine, the server, Optimize, and the new features |
 | `Aptus.command` | Double-click to run from source in your browser |
 
 ## Run it from source
@@ -31,6 +32,8 @@ Running from source counts as Pro, so every feature is on for testing. Set `APTU
 - **Batches:** drop several photos, a whole folder, or videos. Click a thumbnail to frame that file; files you don't touch use a centered crop. `[` and `]` step through them.
 - **Crops you place:** every exact-size destination draws its own frame. Drag a frame to move it, drag a corner to crop tighter, or tap the subject to move every frame at once.
 - **Size targets:** encodes at the preset quality and, if the file is over its target, finds the highest quality that fits (lowest allowed: 30). If even that's too big, it says so.
+- **Optimize:** drop a batch or a folder, pick a destination, and every photo is resized by its long edge or width, converted, and compressed under the destination's max size. Nothing is cropped. Optimize won't go below quality 65 (50 for AVIF); when that still doesn't fit, it steps the dimensions down, never below the destination's minimum. Social destinations warn when a platform will crop a photo's shape. A file that already meets every rule is copied unchanged. GPS and camera serial numbers are always removed; copyright, credit, and capture date can be kept. Every photo gets one result: Done, Already fit, Resized to fit, Needs attention, or Failed, and **Retry** reruns only the exceptions.
+- **JPEG XL:** the **Archive** destination repacks JPEGs about 20% smaller with every pixel and all metadata kept; `djxl` turns them back into the byte-identical original. PNG, TIFF, and BMP become lossless JPEG XL, and already-lossy files are copied unchanged. JPEG XL is also in Optimize's Format menu, with a warning wherever it won't be accepted (Webflow, email, social platforms). Aptus calls libjxl's `cjxl` (BSD), built by `mac/build_jxl.sh` and bundled in the app, instead of the GPL Python plugin.
 - **Responsive size set:** one WebP each at 640, 1024, 1600 and 2560 wide for a `srcset`. Widths wider than the photo are skipped, never enlarged.
 - **SEO file names:** fill in location, what's in it, client, and shot type to get names like `lancaster-pa-barn-studio-smith-builders-wide-01-hero.webp`, following the Stump & Root SEO image naming guide. Aptus also suggests alt text under 125 characters.
 - **Upload limits:** warns when a file is too big for Webflow's 4 MB image limit (listed under `limits` in `presets.json`).
@@ -47,14 +50,14 @@ Dragging an export out of the window into another app isn't supported; use **Sho
 
 | Free | Pro |
 | --- | --- |
-| One file to one destination at a time, built-in presets, single frame grabs, sharp-frame suggestions, SEO names, the 100% check | Adds batches, several destinations at once, your own presets, interval grabs and contact sheets |
+| One file to one destination at a time, built-in presets, single frame grabs, sharp-frame suggestions, SEO names, the 100% check, Optimize for up to 10 photos and one destination at a time | Adds batches, several destinations at once, your own presets, interval grabs and contact sheets, and Optimize for any number of photos and several destinations |
 
 The server enforces these limits, not just the interface.
 
 ## Before you ship: four things only you can do
 
 1. **Host the preset list.** Upload `presets.json` to `https://greenlaunch.co/aptus/presets.json` (or change `PRESETS_URL` in `app.py`). When platform sizes change, edit it and raise `version` by 1; apps pick it up the next time they open.
-2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs as Free with no way to activate.
+2. **Turn on licensing.** In `greenlaunch_license.py`, replace `REPLACE_WITH_PUBLIC_KEY` with the license service's public key. Add `aptus` as an app in the license service. Until then the built app runs with every Pro feature on, as the owner's copy; Free limits start once licensing is set up.
 3. **Finish the app icon.** `mac/Aptus.icns` is an interim flat icon. Build the final one in Icon Composer 2 from the layers in `mac/icon/`, as described in `DESIGN.md`.
 4. **Set up signing.** In the [stumpandroot/aptus-mac repository](https://github.com/stumpandroot/aptus-mac), go to **Settings > Secrets and variables > Actions** and add the same six secrets as Vectorize: `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `MACOS_SIGN_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`. The Vectorize README has the step-by-step for making each one.
 
@@ -64,12 +67,12 @@ Every push to `main` builds two DMGs, one for Apple silicon and one for Intel. F
 
 Each build:
 
-1. Builds an LGPL-only ffmpeg from source (`mac/build_ffmpeg.sh`), with no GPL parts and no outside codec libraries. It's cached between builds.
+1. Builds an LGPL-only ffmpeg from source (`mac/build_ffmpeg.sh`), with no GPL parts and no outside codec libraries, and libjxl's `cjxl` encoder (`mac/build_jxl.sh`, BSD). Both are cached between builds.
 2. Runs the tests against that ffmpeg.
 3. Builds `Aptus.app` with PyInstaller, then checks it: `--self-test` confirms every bundled part works, and `--smoke-test` exports the sample and opens and closes the window.
 4. Signs, makes the DMG, and notarizes it when the secrets are set. Without them, you get an unsigned test build.
 
-To build on your own Mac instead: `bash mac/build_ffmpeg.sh`, then `pyinstaller --noconfirm mac/Aptus.spec`, then `bash mac/sign_and_package.sh`.
+To build on your own Mac instead: `bash mac/build_ffmpeg.sh` and `bash mac/build_jxl.sh`, then `pyinstaller --noconfirm mac/Aptus.spec`, then `bash mac/sign_and_package.sh`.
 
 ## Privacy and safety
 

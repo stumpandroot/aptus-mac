@@ -1,6 +1,7 @@
 # PyInstaller recipe for Aptus.app. Build from the project folder:
 #   pyinstaller --noconfirm mac/Aptus.spec
-# Expects ffmpeg and ffprobe in mac/vendor/ffmpeg/ (mac/build_ffmpeg.sh makes them).
+# Expects ffmpeg and ffprobe in mac/vendor/ffmpeg/ (mac/build_ffmpeg.sh makes them)
+# and cjxl in mac/vendor/jxl/ (mac/build_jxl.sh makes it).
 import os
 from pathlib import Path
 
@@ -9,15 +10,19 @@ from PyInstaller.utils.hooks import collect_submodules
 ROOT = Path(SPECPATH).parent
 VERSION = (ROOT / "VERSION").read_text().strip() if (ROOT / "VERSION").exists() else "1.0.0"
 FFMPEG = ROOT / "mac" / "vendor" / "ffmpeg"
+JXL = ROOT / "mac" / "vendor" / "jxl"
 ICON = ROOT / "mac" / "Aptus.icns"
 
 for tool in ("ffmpeg", "ffprobe"):
     if not (FFMPEG / tool).is_file():
         raise SystemExit(f"Missing {FFMPEG / tool}. Run mac/build_ffmpeg.sh first.")
+if not (JXL / "cjxl").is_file():
+    raise SystemExit(f"Missing {JXL / 'cjxl'}. Run mac/build_jxl.sh first.")
 
 datas = [
     (str(ROOT / "static"), "static"),
     (str(ROOT / "presets.json"), "."),
+    (str(ROOT / "release_notes.json"), "."),
 ]
 if (ROOT / "VERSION").exists():
     datas.append((str(ROOT / "VERSION"), "."))
@@ -25,7 +30,7 @@ if (ROOT / "VERSION").exists():
 a = Analysis(
     [str(ROOT / "mac" / "main.py")],
     pathex=[str(ROOT)],
-    binaries=[(str(FFMPEG / "ffmpeg"), "ffmpeg"), (str(FFMPEG / "ffprobe"), "ffmpeg")],
+    binaries=[(str(FFMPEG / "ffmpeg"), "ffmpeg"), (str(FFMPEG / "ffprobe"), "ffmpeg"), (str(JXL / "cjxl"), "jxl")],
     datas=datas,
     hiddenimports=(
         ["app", "greenlaunch_license", "pillow_heif", "certifi", "webview.platforms.cocoa"]
