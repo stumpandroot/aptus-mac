@@ -36,8 +36,10 @@ fi
 # jpegli for reading JPEGs. Everything optional that would link a system library is off.
 # BUILD_SHARED_LIBS=OFF links libjxl and its parts statically; JPEGXL_STATIC isn't used because it asks for a
 # fully static binary, which macOS doesn't allow (cjxl links only the system's libSystem and libc++).
+# CMAKE_POLICY_VERSION_MINIMUM lets CMake 4 configure the bundled libpng, which still declares CMake 3.1.
 cmake -S libjxl -B build -G "Unix Makefiles" \
   -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_TESTING=OFF \
   -DJPEGXL_ENABLE_TOOLS=ON \
