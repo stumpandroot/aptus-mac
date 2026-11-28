@@ -27,6 +27,11 @@ if [ ! -d libjxl ]; then
     https://github.com/libjxl/libjxl.git
 fi
 
+# libjxl puts only libpng's source folder on the include path, but libpng writes pnglibconf.h into the build
+# folder, so the PNG reader can't find it. libpng ships a ready-made copy for builds like this; put it in place.
+PNGDIR=libjxl/third_party/libpng
+[ -f "$PNGDIR/pnglibconf.h" ] || cp "$PNGDIR/scripts/pnglibconf.h.prebuilt" "$PNGDIR/pnglibconf.h"
+
 EXTRA=()
 if [ "$(uname)" = "Darwin" ]; then
   EXTRA+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0)
@@ -59,15 +64,6 @@ cmake -S libjxl -B build -G "Unix Makefiles" \
   -DCMAKE_DISABLE_FIND_PACKAGE_GIF=ON \
   -DCMAKE_DISABLE_FIND_PACKAGE_JPEG=ON \
   "${EXTRA[@]}"
-# libpng generates pnglibconf.h in its own step, but libjxl's PNG reader is an object library that doesn't wait
-# for it, so a parallel build races. Build libpng (and its generated headers) first, then cjxl.
-for target in genfiles png_genfiles png_static; do
-  if cmake --build build --target help | grep -q "\.\.\. $target\$"; then
-    cmake --build build --target "$target" -j"$JOBS"
-  fi
-done
-test -f build/third_party/libpng/pnglibconf.h || find build -name pnglibconf.h | grep -q . \
-  || { echo "libpng didn't generate pnglibconf.h" >&2; exit 1; }
 cmake --build build --target cjxl -j"$JOBS"
 
 cp build/tools/cjxl "$OUT/"
